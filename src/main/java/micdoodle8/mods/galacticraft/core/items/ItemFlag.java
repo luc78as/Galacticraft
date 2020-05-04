@@ -81,7 +81,7 @@ public class ItemFlag extends Item implements IHoldableItemCustom, ISortableItem
 
                 if (worldIn.getEntitiesWithinAABB(EntityFlag.class, new AxisAlignedBB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 3, pos.getZ() + 1)).isEmpty())
                 {
-                    worldIn.spawnEntityInWorld(flag);
+                    worldIn.spawnEntity(flag);
                     flag.setType(stack.getItemDamage());
                     flag.setOwner(PlayerUtil.getName(player));
                     worldIn.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundType.METAL.getBreakSound(), SoundCategory.BLOCKS, SoundType.METAL.getVolume(), SoundType.METAL.getPitch() + 2.0F);
@@ -89,7 +89,7 @@ public class ItemFlag extends Item implements IHoldableItemCustom, ISortableItem
                 }
                 else
                 {
-                    entity.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.flag.already_placed")));
+                    entity.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.flag.already_placed")));
                 }
             }
 
@@ -99,10 +99,7 @@ public class ItemFlag extends Item implements IHoldableItemCustom, ISortableItem
 
                 if (var2 >= 0 && !player.capabilities.isCreativeMode)
                 {
-                    if (--player.inventory.mainInventory[var2].stackSize <= 0)
-                    {
-                        player.inventory.mainInventory[var2] = null;
-                    }
+                    player.inventory.mainInventory.get(var2).shrink(1);
                 }
             }
         }
@@ -110,9 +107,9 @@ public class ItemFlag extends Item implements IHoldableItemCustom, ISortableItem
 
     private int getInventorySlotContainItem(EntityPlayer player, ItemStack stack)
     {
-        for (int var2 = 0; var2 < player.inventory.mainInventory.length; ++var2)
+        for (int var2 = 0; var2 < player.inventory.mainInventory.size(); ++var2)
         {
-            if (player.inventory.mainInventory[var2] != null && player.inventory.mainInventory[var2].isItemEqual(stack))
+            if (!player.inventory.mainInventory.get(var2).isEmpty() && player.inventory.mainInventory.get(var2).isItemEqual(stack))
             {
                 return var2;
             }
@@ -134,10 +131,10 @@ public class ItemFlag extends Item implements IHoldableItemCustom, ISortableItem
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(ItemStack itemStackIn, World worldIn, EntityPlayer playerIn, EnumHand hand)
+    public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer playerIn, EnumHand hand)
     {
         playerIn.setActiveHand(hand);
-        return new ActionResult<>(EnumActionResult.SUCCESS, itemStackIn);
+        return new ActionResult<>(EnumActionResult.SUCCESS, playerIn.getHeldItem(hand));
     }
 
     @Override

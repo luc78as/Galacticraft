@@ -28,7 +28,7 @@ public class ItemSensorGlasses extends ItemArmor implements ISortableItem, ISens
     }
 
     @Override
-    public boolean isItemTool(ItemStack stack)
+    public boolean isEnchantable(ItemStack stack)
     {
         return false;
     }

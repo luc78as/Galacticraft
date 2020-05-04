@@ -34,7 +34,7 @@ public class EntityEvolvedSpider extends EntitySpider implements IEntityBreathab
         super.applyEntityAttributes();
         this.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(22.0D);
         double difficulty = 0;
-        switch (this.worldObj.getDifficulty())
+        switch (this.world.getDifficulty())
         {
         case HARD : difficulty = 2D;
         break;
@@ -58,12 +58,12 @@ public class EntityEvolvedSpider extends EntitySpider implements IEntityBreathab
     {
         livingdata = super.onInitialSpawn(difficulty, livingdata);
 
-        if (this.worldObj.rand.nextInt(100) == 0)
+        if (this.world.rand.nextInt(100) == 0)
         {
-            EntityEvolvedSkeleton entityskeleton = new EntityEvolvedSkeleton(this.worldObj);
+            EntityEvolvedSkeleton entityskeleton = new EntityEvolvedSkeleton(this.world);
             entityskeleton.setLocationAndAngles(this.posX, this.posY, this.posZ, this.rotationYaw, 0.0F);
             entityskeleton.onInitialSpawn(difficulty, (IEntityLivingData)null);
-            this.worldObj.spawnEntityInWorld(entityskeleton);
+            this.world.spawnEntity(entityskeleton);
             entityskeleton.startRiding(this);
         }
 
@@ -71,9 +71,9 @@ public class EntityEvolvedSpider extends EntitySpider implements IEntityBreathab
         {
             livingdata = new EntitySpider.GroupData();
 
-            if (this.worldObj.getDifficulty() == EnumDifficulty.HARD && this.worldObj.rand.nextFloat() < 0.1F * difficulty.getClampedAdditionalDifficulty())
+            if (this.world.getDifficulty() == EnumDifficulty.HARD && this.world.rand.nextFloat() < 0.1F * difficulty.getClampedAdditionalDifficulty())
             {
-                ((EntitySpider.GroupData)livingdata).setRandomEffect(this.worldObj.rand);
+                ((EntitySpider.GroupData)livingdata).setRandomEffect(this.world.rand);
             }
         }
 

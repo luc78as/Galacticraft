@@ -68,9 +68,9 @@ public class TileEntityPanelLight extends TileEntity implements IPacketReceiver
 
     public BlockPanelLighting.PanelType getType()
     {
-        if (this.worldObj != null)
+        if (this.world != null)
         {
-            IBlockState b = this.worldObj.getBlockState(this.pos);
+            IBlockState b = this.world.getBlockState(this.pos);
             if (b.getBlock() instanceof BlockPanelLighting)
             {
                 return (PanelType) b.getValue(BlockPanelLighting.TYPE);
@@ -184,7 +184,7 @@ public class TileEntityPanelLight extends TileEntity implements IPacketReceiver
     @Override
     public void onLoad()
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             //Request any networked information from server on first client update
             GalacticraftCore.packetPipeline.sendToServer(new PacketDynamic(this));
@@ -194,7 +194,7 @@ public class TileEntityPanelLight extends TileEntity implements IPacketReceiver
     @Override
     public void getNetworkedData(ArrayList<Object> sendData)
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             return;
         }
@@ -218,7 +218,7 @@ public class TileEntityPanelLight extends TileEntity implements IPacketReceiver
     @Override
     public void decodePacketdata(ByteBuf buffer)
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             try
             {
@@ -229,7 +229,7 @@ public class TileEntityPanelLight extends TileEntity implements IPacketReceiver
                     String name = ByteBufUtils.readUTF8String(buffer);
                     int otherMeta = buffer.readByte();
                     this.superState = readBlockState(name, otherMeta);
-                    this.worldObj.markBlockRangeForRenderUpdate(this.pos, this.pos);
+                    this.world.markBlockRangeForRenderUpdate(this.pos, this.pos);
                 }
             }
             catch (Exception e)
@@ -241,6 +241,6 @@ public class TileEntityPanelLight extends TileEntity implements IPacketReceiver
 
     public boolean getEnabled()
     {
-        return !RedstoneUtil.isBlockReceivingRedstone(this.worldObj, this.getPos());
+        return !RedstoneUtil.isBlockReceivingRedstone(this.world, this.getPos());
     }
 }

@@ -55,7 +55,6 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent;
-import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -68,13 +67,6 @@ public class MarsModuleClient implements IPlanetsModuleClient
     @Override
     public void preInit(FMLPreInitializationEvent event)
     {
-        addPlanetVariants("mars", "ore_copper_mars", "ore_tin_mars", "ore_desh_mars", "ore_iron_mars", "cobblestone", "mars_surface", "mars_middle", "dungeon_brick", "desh_block", "mars_stone");
-        addPlanetVariants("cavern_vines", "vine_0", "vine_1", "vine_2");
-        addPlanetVariants("item_basic_mars", "raw_desh", "desh_stick", "ingot_desh", "reinforced_plate_t2", "slimeling_cargo", "compressed_desh", "fluid_manip");
-        addPlanetVariants("schematic", "schematic_rocket_t3", "schematic_rocket_cargo", "schematic_astro_miner");
-        addPlanetVariants("slimeling_egg", "slimeling_egg_red", "slimeling_egg_blue", "slimeling_egg_yellow");
-        addPlanetVariants("mars_machine", "terraformer", "cryogenic_chamber", "launch_controller");
-        addPlanetVariants("mars_machine_t2", "gas_liquefier", "methane_synthesizer", "electrolyzer");
         MinecraftForge.EVENT_BUS.register(this);
 
         RenderingRegistry.registerEntityRenderingHandler(EntitySludgeling.class, (RenderManager manager) -> new RenderSludgeling(manager));
@@ -88,7 +80,7 @@ public class MarsModuleClient implements IPlanetsModuleClient
 
     private void addPlanetVariants(String name, String... variants)
     {
-        Item itemBlockVariants = GameRegistry.findItem(Constants.MOD_ID_PLANETS, name);
+        Item itemBlockVariants = Item.REGISTRY.getObject(new ResourceLocation(Constants.MOD_ID_PLANETS, name));
         ResourceLocation[] variants0 = new ResourceLocation[variants.length];
         for (int i = 0; i < variants.length; ++i)
         {
@@ -100,6 +92,14 @@ public class MarsModuleClient implements IPlanetsModuleClient
     @Override
     public void registerVariants()
     {
+        addPlanetVariants("mars", "ore_copper_mars", "ore_tin_mars", "ore_desh_mars", "ore_iron_mars", "cobblestone", "mars_surface", "mars_middle", "dungeon_brick", "desh_block", "mars_stone");
+        addPlanetVariants("cavern_vines", "vine_0", "vine_1", "vine_2");
+        addPlanetVariants("item_basic_mars", "raw_desh", "desh_stick", "ingot_desh", "reinforced_plate_t2", "slimeling_cargo", "compressed_desh", "fluid_manip");
+        addPlanetVariants("schematic", "schematic_rocket_t3", "schematic_rocket_cargo", "schematic_astro_miner");
+        addPlanetVariants("slimeling_egg", "slimeling_egg_red", "slimeling_egg_blue", "slimeling_egg_yellow");
+        addPlanetVariants("mars_machine", "terraformer", "cryogenic_chamber", "launch_controller");
+        addPlanetVariants("mars_machine_t2", "gas_liquefier", "methane_synthesizer", "electrolyzer");
+
         Item sludge = Item.getItemFromBlock(MarsBlocks.blockSludge);
         ModelBakery.registerItemVariants(sludge, new ResourceLocation(GalacticraftPlanets.TEXTURE_PREFIX + "sludge"));
         ModelLoader.setCustomMeshDefinition(sludge, IItemMeshDefinitionCustom.create((ItemStack stack) -> sludgeLocation));
@@ -217,12 +217,6 @@ public class MarsModuleClient implements IPlanetsModuleClient
         ClientUtil.registerItemJson(GalacticraftPlanets.TEXTURE_PREFIX, MarsItems.schematic, 2, "schematic_astro_miner");
     }
 
-    private void addVariants(String name, ResourceLocation... variants)
-    {
-        Item itemBlockVariants = GameRegistry.findItem(Constants.MOD_ID_PLANETS, name);
-        ModelBakery.registerItemVariants(itemBlockVariants, variants);
-    }
-
     @Override
     public Object getGuiElement(Side side, int ID, EntityPlayer player, World world, int x, int y, int z)
     {
@@ -275,11 +269,11 @@ public class MarsModuleClient implements IPlanetsModuleClient
             {
                 if (particleID.equals("sludgeDrip"))
                 {
-//                    particle = new EntityDropParticleFX(mc.theWorld, position.x, position.y, position.z, Material.WATER); TODO
+//                    particle = new EntityDropParticleFX(mc.world, position.x, position.y, position.z, Material.WATER); TODO
                 }
                 else if (particleID.equals("bacterialDrip"))
                 {
-                    particle = new ParticleDrip(mc.theWorld, position.x, position.y, position.z);
+                    particle = new ParticleDrip(mc.world, position.x, position.y, position.z);
                 }
             }
 
@@ -317,7 +311,7 @@ public class MarsModuleClient implements IPlanetsModuleClient
         {
             final Minecraft minecraft = FMLClientHandler.instance().getClient();
 
-            final WorldClient world = minecraft.theWorld;
+            final WorldClient world = minecraft.world;
 
             if (world != null)
             {

@@ -122,7 +122,7 @@ public class MapUtil
                 }
             }
         }
-        GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_REQUEST_OVERWORLD_IMAGE, GCCoreUtil.getDimensionID(FMLClientHandler.instance().getClient().theWorld), new Object[] {}));
+        GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_REQUEST_OVERWORLD_IMAGE, GCCoreUtil.getDimensionID(FMLClientHandler.instance().getClient().world), new Object[] {}));
         ClientProxyCore.overworldTextureRequestSent = true;
 		DrawGameScreen.reusableMap = new DynamicTexture(MapUtil.SIZE_STD2, MapUtil.SIZE_STD2);
 		MapUtil.biomeColours.clear();
@@ -139,6 +139,7 @@ public class MapUtil
             for (int z0 = -12; z0 <= 12; z0++)
             {
                 Chunk chunk = world.getChunkFromChunkCoords(chunkXPos + x0, chunkZPos + z0);
+                BlockPos pos = null;
 
                 if (chunk != null)
                 {
@@ -156,10 +157,10 @@ public class MapUtil
                                     --l4;
                                     state = chunk.getBlockState(x, l4, z);
                                 }
-                                while (state.getBlock().getMapColor(state) == MapColor.AIR && l4 > 0);
+                                while (state.getMapColor(world, pos) == MapColor.AIR && l4 > 0);
                             }
 
-                            int col = state.getBlock().getMapColor(state).colorValue;
+                            int col = pos != null ? state.getMapColor(world, pos).colorValue : 0;
                             image.setRGB(x + (x0 + 12) * 16, z + (z0 + 12) * 16, col);
                         }
                     }
@@ -174,7 +175,7 @@ public class MapUtil
         {
             return;
         }
-        World overworld = WorldUtil.getProviderForDimensionServer(ConfigManagerCore.idDimensionOverworld).worldObj;
+        World overworld = WorldUtil.getProviderForDimensionServer(ConfigManagerCore.idDimensionOverworld).world;
         if (overworld == null)
         {
             return;
@@ -201,7 +202,7 @@ public class MapUtil
 
         //This will make the 'slow map', a map covering a large part of the world around spawn
         //(On a typical modern PC, this should take 20-30 minutes to generate in its own thread)
-        MapUtil.getBiomeMapForCoords(overworld, 0, 0, OVERWORLD_MAP_SCALE, OVERWORLD_LARGEMAP_WIDTH, OVERWORLD_LARGEMAP_HEIGHT, baseFolder);
+        //MapUtil.getBiomeMapForCoords(overworld, 0, 0, OVERWORLD_MAP_SCALE, OVERWORLD_LARGEMAP_WIDTH, OVERWORLD_LARGEMAP_HEIGHT, baseFolder);
     }
 
     public static void sendOverworldToClient(EntityPlayerMP client)
@@ -310,12 +311,12 @@ public class MapUtil
             int halfSize = map.length / 2;
             byte[] largeMapPartA = Arrays.copyOf(map, halfSize);
             byte[] largeMapPartB = Arrays.copyOfRange(map, halfSize, map.length);
-            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_SEND_OVERWORLD_IMAGE, GCCoreUtil.getDimensionID(client.worldObj), new Object[] { cx, map.length, largeMapPartA }), client);
-            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_SEND_OVERWORLD_IMAGE, GCCoreUtil.getDimensionID(client.worldObj), new Object[] { cx + 1, map.length, largeMapPartB }), client);
+            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_SEND_OVERWORLD_IMAGE, GCCoreUtil.getDimensionID(client.world), new Object[] { cx, map.length, largeMapPartA }), client);
+            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_SEND_OVERWORLD_IMAGE, GCCoreUtil.getDimensionID(client.world), new Object[] { cx + 1, map.length, largeMapPartB }), client);
         }
         else if (map.length < 1040000)  //That's about the limit on a Forge packet length
     	{
-    		GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_SEND_OVERWORLD_IMAGE, GCCoreUtil.getDimensionID(client.worldObj), new Object[] { cx, cz, map }), client);
+    		GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_SEND_OVERWORLD_IMAGE, GCCoreUtil.getDimensionID(client.world), new Object[] { cx, cz, map }), client);
     	}
     }
 
@@ -1006,7 +1007,7 @@ public class MapUtil
             {
                 clientRequests.add(filename.getName());
                 //GCLog.debug("Info: Client requested map file" + filename.getName());
-                GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_REQUEST_MAP_IMAGE, GCCoreUtil.getDimensionID(FMLClientHandler.instance().getClient().theWorld), new Object[] { dim, cx, cz }));
+                GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_REQUEST_MAP_IMAGE, GCCoreUtil.getDimensionID(FMLClientHandler.instance().getClient().world), new Object[] { dim, cx, cz }));
             }
             return true;
         }
@@ -1226,11 +1227,12 @@ public class MapUtil
 
     public static void makeVanillaMap(int dim, int chunkXPos, int chunkZPos, File baseFolder, BufferedImage image)
     {
+        World world = WorldUtil.getWorldForDimensionServer(dim);
         for (int x0 = -12; x0 <= 12; x0++)
         {
             for (int z0 = -12; z0 <= 12; z0++)
             {
-                Chunk chunk = GCCoreUtil.getServer().worldServerForDimension(dim).getChunkFromChunkCoords(chunkXPos + x0, chunkZPos + z0);
+                Chunk chunk = world.getChunkFromChunkCoords(chunkXPos + x0, chunkZPos + z0);
 
                 if (chunk != null)
                 {
@@ -1240,19 +1242,20 @@ public class MapUtil
                         {
                             int l4 = chunk.getHeightValue(x, z) + 1;
                             IBlockState state = Blocks.AIR.getDefaultState();
+                            BlockPos pos = null;
 
                             if (l4 > 1)
                             {
                                 do
                                 {
                                     --l4;
-                                    BlockPos pos = new BlockPos(x, l4, z);
+                                    pos = new BlockPos(x, l4, z);
                                     state = chunk.getBlockState(pos);
                                 }
-                                while (state.getBlock().getMapColor(state) == MapColor.AIR && l4 > 0);
+                                while (state.getMapColor(world, pos) == MapColor.AIR && l4 > 0);
                             }
 
-                            int col = state.getBlock().getMapColor(state).colorValue;
+                            int col = pos != null ? state.getMapColor(world, pos).colorValue : 0;
                             image.setRGB(x + (x0 + 12) * 16, z + (z0 + 12) * 16, col);
                         }
                     }

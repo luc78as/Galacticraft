@@ -26,7 +26,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.VertexBuffer;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -44,7 +44,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.IChunkGenerator;
+import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.client.ForgeHooksClient;
@@ -83,20 +83,20 @@ public class TransformerHooks
     private static Method generateTCAuraNodes = null;
     private static boolean generatorsInitialised = false;
     public static List<Block> spawnListAE2_GC = new LinkedList<>();
-    public static ThreadLocal<VertexBuffer> renderBuilder = new ThreadLocal<>();
+    public static ThreadLocal<BufferBuilder> renderBuilder = new ThreadLocal<>();
     private static int rainSoundCounter = 0;
     private static Random random = new Random();
 
     public static double getGravityForEntity(Entity entity)
     {
-        if (entity.worldObj.provider instanceof IGalacticraftWorldProvider)
+        if (entity.world.provider instanceof IGalacticraftWorldProvider)
         {
-            if (entity instanceof EntityChicken && !OxygenUtil.isAABBInBreathableAirBlock(entity.worldObj, entity.getEntityBoundingBox()))
+            if (entity instanceof EntityChicken && !OxygenUtil.isAABBInBreathableAirBlock(entity.world, entity.getEntityBoundingBox()))
             {
                 return 0.08D;
             }
 
-            final IGalacticraftWorldProvider customProvider = (IGalacticraftWorldProvider) entity.worldObj.provider;
+            final IGalacticraftWorldProvider customProvider = (IGalacticraftWorldProvider) entity.world.provider;
             if (entity instanceof EntityPlayer)
             {
                 EntityPlayer player = (EntityPlayer) entity;
@@ -149,9 +149,9 @@ public class TransformerHooks
 
     public static double getItemGravity(EntityItem e)
     {
-        if (e.worldObj.provider instanceof IGalacticraftWorldProvider)
+        if (e.world.provider instanceof IGalacticraftWorldProvider)
         {
-            final IGalacticraftWorldProvider customProvider = (IGalacticraftWorldProvider) e.worldObj.provider;
+            final IGalacticraftWorldProvider customProvider = (IGalacticraftWorldProvider) e.world.provider;
             return Math.max(0.002D, 0.03999999910593033D - (customProvider instanceof IOrbitDimension ? 0.05999999910593033D : customProvider.getGravity()) / 1.75D);
         }
         else
@@ -162,9 +162,9 @@ public class TransformerHooks
 
     public static float getArrowGravity(EntityArrow e)
     {
-        if (e.worldObj.provider instanceof IGalacticraftWorldProvider)
+        if (e.world.provider instanceof IGalacticraftWorldProvider)
         {
-            return ((IGalacticraftWorldProvider)e.worldObj.provider).getArrowGravity();
+            return ((IGalacticraftWorldProvider)e.world.provider).getArrowGravity();
         }
         else
         {
@@ -185,21 +185,24 @@ public class TransformerHooks
         return world.prevRainingStrength + (world.rainingStrength - world.prevRainingStrength) * partialTicks;
     }
 
-    public static boolean otherModPreventGenerate(int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator)
+    public static void otherModGenerate(int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider)
     {
-        IChunkProvider chunkProvider = world.getChunkProvider();
-
-        if (!(world.provider instanceof IGalacticraftWorldProvider))
-        {
-            return false;
-        }
         if (world.provider instanceof WorldProviderSpaceStation)
         {
-            return true;
+            return;
         }
-        if (ConfigManagerCore.enableOtherModsFeatures)
+
+        if (!(world.provider instanceof IGalacticraftWorldProvider) || ConfigManagerCore.enableOtherModsFeatures)
         {
-            return false;
+            try {
+                net.minecraftforge.fml.common.registry.GameRegistry.generateWorld(chunkX, chunkZ, world, chunkGenerator, chunkProvider);
+            } catch (Exception e)
+            {
+                GCLog.severe("Error in another mod's worldgen.  This is *NOT* a Galacticraft bug, report it to the other mod please.");
+                GCLog.severe("Details:- Dimension:" + GCCoreUtil.getDimensionID(world) + "  Chunk cx,cz:" + chunkX + "," + chunkZ + "  Seed:" + world.getSeed());
+                e.printStackTrace();
+            }
+            return;
         }
 
         if (!generatorsInitialised)
@@ -208,7 +211,7 @@ public class TransformerHooks
             
             if (ConfigManagerCore.whitelistCoFHCoreGen)
             {   
-                addWorldGenForName("CoFHCore custom oregen", "cofh.core.world.WorldHandler");
+                addWorldGenForName("CoFHCore custom oregen", "cofh.cofhworld.init.WorldHandler");
             }
             addWorldGenForName("GalacticGreg oregen", "bloodasp.galacticgreg.GT_Worldgenerator_Space");
             addWorldGenForName("Dense Ores oregen", "com.rwtema.denseores.WorldGenOres");
@@ -269,7 +272,6 @@ public class TransformerHooks
                 e.printStackTrace();
             }
         }
-        return true;
     }
 
     private static void addWorldGenForName(String logString, String name)
@@ -358,16 +360,16 @@ public class TransformerHooks
     @SideOnly(Side.CLIENT)
     public static Vec3d getFogColorHook(World world)
     {
-        EntityPlayerSP player = FMLClientHandler.instance().getClient().thePlayer;
+        EntityPlayerSP player = FMLClientHandler.instance().getClient().player;
         if (world.provider.getSkyRenderer() instanceof SkyProviderOverworld)
         {
             float var20 = ((float) (player.posY) - Constants.OVERWORLD_SKYPROVIDER_STARTHEIGHT) / 1000.0F;
-            var20 = MathHelper.sqrt_float(var20);
+            var20 = MathHelper.sqrt(var20);
             final float var21 = Math.max(1.0F - var20 * 40.0F, 0.0F);
 
             Vec3d vec = world.getFogColor(1.0F);
 
-            return new Vec3d(vec.xCoord * Math.max(1.0F - var20 * 1.29F, 0.0F), vec.yCoord * Math.max(1.0F - var20 * 1.29F, 0.0F), vec.zCoord * Math.max(1.0F - var20 * 1.29F, 0.0F));
+            return new Vec3d(vec.x * Math.max(1.0F - var20 * 1.29F, 0.0F), vec.y * Math.max(1.0F - var20 * 1.29F, 0.0F), vec.z * Math.max(1.0F - var20 * 1.29F, 0.0F));
         }
 
         return world.getFogColor(1.0F);
@@ -376,7 +378,7 @@ public class TransformerHooks
     @SideOnly(Side.CLIENT)
     public static Vec3d getSkyColorHook(World world)
     {
-        EntityPlayerSP player = FMLClientHandler.instance().getClient().thePlayer;
+        EntityPlayerSP player = FMLClientHandler.instance().getClient().player;
         if (world.provider.getSkyRenderer() instanceof SkyProviderOverworld || (player != null && player.posY > Constants.OVERWORLD_CLOUD_HEIGHT && player.getRidingEntity() instanceof EntitySpaceshipBase))
         {
             float f1 = world.getCelestialAngle(1.0F);
@@ -392,9 +394,9 @@ public class TransformerHooks
                 f2 = 1.0F;
             }
 
-            int i = MathHelper.floor_double(player.posX);
-            int j = MathHelper.floor_double(player.posY);
-            int k = MathHelper.floor_double(player.posZ);
+            int i = MathHelper.floor(player.posX);
+            int j = MathHelper.floor(player.posY);
+            int k = MathHelper.floor(player.posZ);
             BlockPos pos = new BlockPos(i, j, k);
             int l = ForgeHooksClient.getSkyBlendColour(world, pos);
             float f4 = (float) (l >> 16 & 255) / 255.0F;
@@ -409,7 +411,7 @@ public class TransformerHooks
                 Vec3d vec = world.getSkyColor(FMLClientHandler.instance().getClient().getRenderViewEntity(), 1.0F);
                 double blend = (player.posY - Constants.OVERWORLD_CLOUD_HEIGHT) / (Constants.OVERWORLD_SKYPROVIDER_STARTHEIGHT - Constants.OVERWORLD_CLOUD_HEIGHT);
                 double ablend = 1 - blend;
-                return new Vec3d(f4 * blend + vec.xCoord * ablend, f5 * blend + vec.yCoord * ablend, f6 * blend + vec.zCoord * ablend);
+                return new Vec3d(f4 * blend + vec.x * ablend, f5 * blend + vec.y * ablend, f6 * blend + vec.z * ablend);
             }
             else
             {
@@ -439,7 +441,7 @@ public class TransformerHooks
     @SideOnly(Side.CLIENT)
     public static boolean shouldRenderFire(Entity entity)
     {
-        if (entity.worldObj == null || !(entity.worldObj.provider instanceof IGalacticraftWorldProvider))
+        if (entity.world == null || !(entity.world.provider instanceof IGalacticraftWorldProvider))
         {
             return entity.isBurning();
         }
@@ -451,9 +453,9 @@ public class TransformerHooks
 
         if (entity.isBurning())
         {
-            if (OxygenUtil.noAtmosphericCombustion(entity.worldObj.provider))
+            if (OxygenUtil.noAtmosphericCombustion(entity.world.provider))
             {
-                return OxygenUtil.isAABBInBreathableAirBlock(entity.worldObj, entity.getEntityBoundingBox());
+                return OxygenUtil.isAABBInBreathableAirBlock(entity.world, entity.getEntityBoundingBox());
             }
             else
             {
@@ -468,7 +470,7 @@ public class TransformerHooks
     @SideOnly(Side.CLIENT)
     public static void orientCamera(float partialTicks)
     {
-        EntityPlayerSP player = ClientProxyCore.mc.thePlayer;
+        EntityPlayerSP player = ClientProxyCore.mc.player;
         GCPlayerStatsClient stats = GCPlayerStatsClient.get(player);
 
         Entity viewEntity = ClientProxyCore.mc.getRenderViewEntity();
@@ -490,7 +492,7 @@ public class TransformerHooks
             }
         }
 
-        if (viewEntity instanceof EntityLivingBase && viewEntity.worldObj.provider instanceof IZeroGDimension && !((EntityLivingBase)viewEntity).isPlayerSleeping())
+        if (viewEntity instanceof EntityLivingBase && viewEntity.world.provider instanceof IZeroGDimension && !((EntityLivingBase)viewEntity).isPlayerSleeping())
         {
             float pitch = viewEntity.prevRotationPitch + (viewEntity.rotationPitch - viewEntity.prevRotationPitch) * partialTicks;
             float yaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * partialTicks + 180.0F;
@@ -533,7 +535,7 @@ public class TransformerHooks
         boolean within = false;
         for (Map.Entry<Fluid, ResourceLocation> entry : submergedTextures.entrySet())
         {
-            if (FluidUtil.isInsideOfFluid(ClientProxyCore.mc.thePlayer, entry.getKey()))
+            if (FluidUtil.isInsideOfFluid(ClientProxyCore.mc.player, entry.getKey()))
             {
                 within = true;
                 ClientProxyCore.mc.getTextureManager().bindTexture(entry.getValue());
@@ -547,7 +549,7 @@ public class TransformerHooks
         }
 
         Tessellator tessellator = Tessellator.getInstance();
-        float f1 = ClientProxyCore.mc.thePlayer.getBrightness(partialTicks) / 3.0F;
+        float f1 = ClientProxyCore.mc.player.getBrightness() / 3.0F;
         GL11.glColor4f(f1, f1, f1, 1.0F);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -558,9 +560,9 @@ public class TransformerHooks
         float f5 = -1.1F;
         float f6 = 1.1F;
         float f7 = -0.25F;
-        float f8 = -ClientProxyCore.mc.thePlayer.rotationYaw / 64.0F;
-        float f9 = ClientProxyCore.mc.thePlayer.rotationPitch / 64.0F;
-        VertexBuffer worldRenderer = tessellator.getBuffer();
+        float f8 = -ClientProxyCore.mc.player.rotationYaw / 64.0F;
+        float f9 = ClientProxyCore.mc.player.rotationPitch / 64.0F;
+        BufferBuilder worldRenderer = tessellator.getBuffer();
         worldRenderer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
         worldRenderer.pos(f3, f5, f7).tex(f2 + f8, f2 + f9).endVertex();
         worldRenderer.pos(f4, f5, f7).tex(0.0F + f8, f2 + f9).endVertex();
@@ -575,9 +577,9 @@ public class TransformerHooks
     @SideOnly(Side.CLIENT)
     public static void renderFootprints(float partialTicks)
     {
-        FootprintRenderer.renderFootprints(ClientProxyCore.mc.thePlayer, partialTicks);
+        FootprintRenderer.renderFootprints(ClientProxyCore.mc.player, partialTicks);
         MinecraftForge.EVENT_BUS.post(new ClientProxyCore.EventSpecialRender(partialTicks));
-        BubbleRenderer.renderBubbles(ClientProxyCore.mc.thePlayer, partialTicks);
+        BubbleRenderer.renderBubbles(ClientProxyCore.mc.player, partialTicks);
     }
 
     @SideOnly(Side.CLIENT)
@@ -588,7 +590,7 @@ public class TransformerHooks
             return previous;
         }
 
-        EntityPlayer player = Minecraft.getMinecraft().thePlayer;
+        EntityPlayer player = Minecraft.getMinecraft().player;
         if (player.getRidingEntity() != null && player.getRidingEntity() instanceof ICameraZoomEntity)
         {
             return ((ICameraZoomEntity) player.getRidingEntity()).getCameraZoom();
@@ -605,7 +607,7 @@ public class TransformerHooks
             if (stats != null)
             {
                 ItemStack shield = stats.getShieldControllerInSlot();
-                if (shield != null && shield.getItem() == VenusItems.basicItem && shield.getItemDamage() == 0 && shield.stackSize > 0)
+                if (shield != null && !shield.isEmpty() && shield.getItem() == VenusItems.basicItem && shield.getItemDamage() == 0)
                 {
                     return 0D;
                 }
@@ -614,7 +616,7 @@ public class TransformerHooks
         return 1D;
     }
     
-    public static void setCurrentBuffer(VertexBuffer buffer)
+    public static void setCurrentBuffer(BufferBuilder buffer)
     {
         renderBuilder.set(buffer);
     }
@@ -623,17 +625,17 @@ public class TransformerHooks
     {
         return orig || (b instanceof BlockGrating && b != GCBlocks.grating && MinecraftForgeClient.getRenderLayer() == BlockRenderLayer.TRANSLUCENT);
     }
-    
-    public static void preInitFinal()
+
+    public static float armorDamageHookF(EntityLivingBase entity)
     {
-        BlockGrating.remapForgeVariants();
+        return (float) armorDamageHook(entity);
     }
 
     @SideOnly(Side.CLIENT)
     public static int addRainParticles(int result, int rendererUpdateCount, float f)
     {
         Minecraft mc = Minecraft.getMinecraft();
-        World world = mc.theWorld;
+        World world = mc.world;
         if (result == 0 || !(world.provider instanceof IWeatherProvider))
         {
             // Either no rain or it's a vanilla dimension
@@ -692,12 +694,12 @@ public class TransformerHooks
                             zz = z;
                         }
 
-                        mc.effectRenderer.addEffect(moddedProvider.getParticle(mc.theWorld, x, y, z));
+                        mc.effectRenderer.addEffect(moddedProvider.getParticle(mc.world, x, y, z));
                     }
                 }
                 else
                 {
-                    mc.theWorld.spawnParticle(EnumParticleTypes.SMOKE_NORMAL, blockpos1.getX() + xd, blockpos1.getY() + 0.1D - axisalignedbb.minY, blockpos1.getZ() + zd, 0.0D, 0.0D, 0.0D, new int[0]);
+                    mc.world.spawnParticle(EnumParticleTypes.SMOKE_NORMAL, blockpos1.getX() + xd, blockpos1.getY() + 0.1D - axisalignedbb.minY, blockpos1.getZ() + zd, 0.0D, 0.0D, 0.0D, new int[0]);
                 }
             }
         }

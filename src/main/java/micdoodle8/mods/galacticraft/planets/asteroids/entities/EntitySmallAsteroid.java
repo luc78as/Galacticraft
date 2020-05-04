@@ -1,6 +1,7 @@
 package micdoodle8.mods.galacticraft.planets.asteroids.entities;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.MoverType;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
@@ -44,7 +45,7 @@ public class EntitySmallAsteroid extends Entity
 
         super.onEntityUpdate();
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             this.setSpinPitch(this.spinPitch);
             this.setSpinYaw(this.spinYaw);
@@ -68,7 +69,7 @@ public class EntitySmallAsteroid extends Entity
             this.motionZ *= 1.001D;
         }
 
-        this.moveEntity(this.motionX, this.motionY, this.motionZ);
+        this.move(MoverType.SELF, this.motionX, this.motionY, this.motionZ);
         this.firstUpdate = false;
     }
 
@@ -83,17 +84,16 @@ public class EntitySmallAsteroid extends Entity
     @Override
     protected void readEntityFromNBT(NBTTagCompound nbt)
     {
-        this.spinPitch = nbt.getFloat("spinPitch");
-        this.spinYaw = nbt.getFloat("spinYaw");
-        this.ticksExisted = nbt.getInteger("ageTicks");
+    }
+
+    public NBTTagCompound writeToNBT(NBTTagCompound compound)
+    {
+        return compound;
     }
 
     @Override
     protected void writeEntityToNBT(NBTTagCompound nbt)
     {
-        nbt.setFloat("spinPitch", this.spinPitch);
-        nbt.setFloat("spinYaw", this.spinYaw);
-        nbt.setInteger("ageTicks", this.ticksExisted);
     }
 
     public float getSpinPitch()

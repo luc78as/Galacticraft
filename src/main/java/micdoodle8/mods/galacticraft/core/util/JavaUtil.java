@@ -28,7 +28,7 @@ public class JavaUtil extends SecurityManager
     {
         Class<?>[] context = getClassContext();
         
-        int imax = Math.min(context.length, 6);
+        int imax = Math.min(context.length, 7);
         for (int i = 2; i < imax; i++)
         {
             Class<?> test = context[i]; 
@@ -74,8 +74,8 @@ public class JavaUtil extends SecurityManager
     public boolean isCalledBySpecific(Class<?> clazz)
     {
         Class<?>[] context = getClassContext();
-        if (context.length < 4) return false;
-        return (clazz == context[2] && !clazz.isAssignableFrom(context[3]));
+        if (context.length < 6) return false;
+        return (clazz == context[3] && !clazz.isAssignableFrom(context[4]));
     }
 
     public int isCalledBySecond(Class<?> clazz1, Class<?> clazz2, Class<?> clazz3)

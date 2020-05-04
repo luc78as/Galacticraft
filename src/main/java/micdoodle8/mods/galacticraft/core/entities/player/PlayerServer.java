@@ -13,6 +13,7 @@ import micdoodle8.mods.galacticraft.planets.asteroids.dimension.WorldProviderAst
 import micdoodle8.mods.galacticraft.planets.asteroids.items.ItemArmorAsteroids;
 import micdoodle8.mods.galacticraft.planets.mars.items.ItemArmorMars;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.MoverType;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -47,12 +48,12 @@ public class PlayerServer implements IPlayerServer
     }
 
     @Override
-    public void moveEntity(EntityPlayerMP player, double par1, double par3, double par5)
+    public void move(EntityPlayerMP player, MoverType type, double x, double y, double z)
     {
         // If the player is on the moon, not airbourne and not riding anything
-        if (player.worldObj.provider instanceof WorldProviderMoon && !player.worldObj.isRemote && player.getRidingEntity() == null)
+        if (player.world.provider instanceof WorldProviderMoon && !player.world.isRemote && player.getRidingEntity() == null)
         {
-            GCPlayerHandler.updateFeet(player, par1, par5);
+            GCPlayerHandler.updateFeet(player, x, z);
         }
     }
 
@@ -86,9 +87,9 @@ public class PlayerServer implements IPlayerServer
 
         if (GalacticraftCore.isPlanetsLoaded)
         {
-            if (par1DamageSource == DamageSource.outOfWorld)
+            if (par1DamageSource == DamageSource.OUT_OF_WORLD)
             {
-                if (player.worldObj.provider instanceof WorldProviderAsteroids)
+                if (player.world.provider instanceof WorldProviderAsteroids)
                 {
                     if (player.posY > -120D)
                     {
@@ -100,7 +101,7 @@ public class PlayerServer implements IPlayerServer
                     }
                 }
             }
-            else if (par1DamageSource == DamageSource.fall || par1DamageSource == DamageSourceGC.spaceshipCrash)
+            else if (par1DamageSource == DamageSource.FALL || par1DamageSource == DamageSourceGC.spaceshipCrash)
             {
                 int titaniumCount = 0;
                 if (player.inventory != null)
@@ -145,7 +146,7 @@ public class PlayerServer implements IPlayerServer
         if (player.getRNG().nextDouble() >= player.getEntityAttribute(SharedMonsterAttributes.KNOCKBACK_RESISTANCE).getAttributeValue())
         {
             player.isAirBorne = deshCount < 2;
-            float f1 = MathHelper.sqrt_double(impulseX * impulseX + impulseZ * impulseZ);
+            float f1 = MathHelper.sqrt(impulseX * impulseX + impulseZ * impulseZ);
             float f2 = 0.4F - deshCount * 0.05F;
             double d1 = 2.0D - deshCount * 0.15D;
             player.motionX /= d1;

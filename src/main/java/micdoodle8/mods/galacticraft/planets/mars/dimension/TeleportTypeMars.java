@@ -89,10 +89,10 @@ public class TeleportTypeMars implements ITeleportType
 
                 if (!newWorld.isRemote)
                 {
-                    CompatibilityManager.forceLoadChunks((WorldServer) newWorld);
+                    boolean previous = CompatibilityManager.forceLoadChunks((WorldServer) newWorld);
                     lander.forceSpawn = true;
-                    newWorld.spawnEntityInWorld(lander);
-                    CompatibilityManager.forceLoadChunksEnd((WorldServer) newWorld);
+                    newWorld.spawnEntity(lander);
+                    CompatibilityManager.forceLoadChunksEnd((WorldServer) newWorld, previous);
                 }
 
                 stats.setTeleportCooldown(10);

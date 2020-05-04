@@ -1,5 +1,6 @@
 package micdoodle8.mods.galacticraft.planets.venus.world.gen;
 
+import micdoodle8.mods.galacticraft.api.prefab.world.gen.BiomeAdaptive;
 import micdoodle8.mods.galacticraft.api.prefab.world.gen.MapGenBaseMeta;
 import micdoodle8.mods.galacticraft.api.world.ChunkProviderBase;
 import micdoodle8.mods.galacticraft.core.perlin.generator.Gradient;
@@ -42,7 +43,7 @@ public class ChunkProviderVenus extends ChunkProviderBase
     private NoiseGeneratorOctaves noiseGen6;
     private NoiseGeneratorOctaves mobSpawnerNoise;
     private final Gradient noiseGenSmooth1;
-    private World worldObj;
+    private World world;
     private WorldType worldType;
     private final double[] terrainCalcs;
     private final float[] parabolicField;
@@ -60,7 +61,7 @@ public class ChunkProviderVenus extends ChunkProviderBase
 
     public ChunkProviderVenus(World worldIn, long seed, boolean mapFeaturesEnabled)
     {
-        this.worldObj = worldIn;
+        this.world = worldIn;
         this.worldType = worldIn.getWorldInfo().getTerrainType();
         this.rand = new Random(seed);
         this.noiseGen1 = new NoiseGeneratorOctaves(this.rand, 16);
@@ -78,7 +79,7 @@ public class ChunkProviderVenus extends ChunkProviderBase
         {
             for (int j = -2; j <= 2; ++j)
             {
-                float f = 10.0F / MathHelper.sqrt_float((float) (i * i + j * j) + 0.2F);
+                float f = 10.0F / MathHelper.sqrt((float) (i * i + j * j) + 0.2F);
                 this.parabolicField[i + 2 + (j + 2) * 5] = f;
             }
         }
@@ -96,7 +97,7 @@ public class ChunkProviderVenus extends ChunkProviderBase
     private void setBlocksInChunk(int chunkX, int chunkZ, ChunkPrimer primer)
     {
         this.noiseGenSmooth1.setFrequency(0.015F);
-        this.biomesForGeneration = this.worldObj.getBiomeProvider().getBiomesForGeneration(this.biomesForGeneration, chunkX * 4 - 2, chunkZ * 4 - 2, 10, 10);
+        this.biomesForGeneration = this.world.getBiomeProvider().getBiomesForGeneration(this.biomesForGeneration, chunkX * 4 - 2, chunkZ * 4 - 2, 10, 10);
         this.createLandPerBiome(chunkX * 4, chunkZ * 4);
 
         for (int i = 0; i < 4; ++i)
@@ -169,27 +170,27 @@ public class ChunkProviderVenus extends ChunkProviderBase
             for (int j = 0; j < 16; ++j)
             {
                 Biome biomegenbase = p_180517_4_[j + i * 16];
-                biomegenbase.genTerrainBlocks(this.worldObj, this.rand, p_180517_3_, p_180517_1_ * 16 + i, p_180517_2_ * 16 + j, this.stoneNoise[j + i * 16]);
+                biomegenbase.genTerrainBlocks(this.world, this.rand, p_180517_3_, p_180517_1_ * 16 + i, p_180517_2_ * 16 + j, this.stoneNoise[j + i * 16]);
             }
         }
     }
 
     @Override
-    public Chunk provideChunk(int x, int z)
+    public Chunk generateChunk(int x, int z)
     {
         this.rand.setSeed((long) x * 341873128712L + (long) z * 132897987541L);
         ChunkPrimer chunkprimer = new ChunkPrimer();
         this.setBlocksInChunk(x, z, chunkprimer);
-        this.biomesForGeneration = this.worldObj.getBiomeProvider().getBiomes(this.biomesForGeneration, x * 16, z * 16, 16, 16);
+        this.biomesForGeneration = this.world.getBiomeProvider().getBiomes(this.biomesForGeneration, x * 16, z * 16, 16, 16);
 
-        this.lavaCaveGenerator.generate(this.worldObj, x, z, chunkprimer);
+        this.caveGenerator.generate(this.world, x, z, chunkprimer);
+        this.lavaCaveGenerator.generate(this.world, x, z, chunkprimer);
 
         this.replaceBlocksForBiome(x, z, chunkprimer, this.biomesForGeneration);
 
-        this.caveGenerator.generate(this.worldObj, x, z, chunkprimer);
-        this.dungeonGenerator.generate(this.worldObj, x, z, chunkprimer);
+        this.dungeonGenerator.generate(this.world, x, z, chunkprimer);
 
-        Chunk chunk = new Chunk(this.worldObj, chunkprimer, x, z);
+        Chunk chunk = new Chunk(this.world, chunkprimer, x, z);
         byte[] abyte = chunk.getBiomeArray();
 
         for (int i = 0; i < abyte.length; ++i)
@@ -301,7 +302,7 @@ public class ChunkProviderVenus extends ChunkProviderBase
                     double d2 = this.octaves2[i] / 512.0;
                     double d3 = this.octaves3[i] / 1024.0;
                     double d4 = (this.octaves1[i] / 10.0D + 1.0D) / 2.0D;
-//                    double d5 = MathHelper.denormalizeClamp(d2, d3, d4) - d1;
+//                    double d5 = MathHelper.clampedLerp(d2, d3, d4) - d1;
                     double d5 = d3 - d1;
 
                     if (l1 > 29)
@@ -324,46 +325,47 @@ public class ChunkProviderVenus extends ChunkProviderBase
         int i = x * 16;
         int j = z * 16;
         BlockPos blockpos = new BlockPos(i, 0, j);
-        Biome biomegenbase = this.worldObj.getBiome(blockpos.add(16, 0, 16));
-        this.rand.setSeed(this.worldObj.getSeed());
+        Biome biomegenbase = this.world.getBiome(blockpos.add(16, 0, 16));
+        this.rand.setSeed(this.world.getSeed());
         long k = this.rand.nextLong() / 2L * 2L + 1L;
         long l = this.rand.nextLong() / 2L * 2L + 1L;
-        this.rand.setSeed((long) x * k + (long) z * l ^ this.worldObj.getSeed());
+        this.rand.setSeed((long) x * k + (long) z * l ^ this.world.getSeed());
+        boolean isValley = biomegenbase instanceof BiomeAdaptive && ((BiomeAdaptive)biomegenbase).isInstance(BiomeGenVenusValley.class);
 
-        if (this.rand.nextInt(biomegenbase instanceof BiomeGenVenusValley ? 3 : 10) == 0)
+        if (this.rand.nextInt(isValley ? 3 : 10) == 0)
         {
             int i2 = this.rand.nextInt(16) + 8;
             int l2 = this.rand.nextInt(this.rand.nextInt(248) + 8);
             int k3 = this.rand.nextInt(16) + 8;
 
-            (new WorldGenLakesVenus()).generate(this.worldObj, this.rand, blockpos.add(i2, l2, k3));
+            (new WorldGenLakesVenus()).generate(this.world, this.rand, blockpos.add(i2, l2, k3));
         }
 
 
-        if (biomegenbase instanceof BiomeGenVenusValley)
+        if (isValley)
         {
             if (this.rand.nextInt(5) == 0)
             {
                 int i2 = this.rand.nextInt(16) + 8;
                 int k3 = this.rand.nextInt(16) + 8;
-                int l2 = this.worldObj.getTopSolidOrLiquidBlock(blockpos.add(i2, 0, k3)).getY() - 10 - this.rand.nextInt(5);
+                int l2 = this.world.getTopSolidOrLiquidBlock(blockpos.add(i2, 0, k3)).getY() - 10 - this.rand.nextInt(5);
 
-                (new WorldGenVaporPool()).generate(this.worldObj, this.rand, blockpos.add(i2, l2, k3));
+                (new WorldGenVaporPool()).generate(this.world, this.rand, blockpos.add(i2, l2, k3));
             }
             else if (this.rand.nextInt(190) == 0)
             {
                 int i2 = this.rand.nextInt(16) + 8;
                 int k3 = this.rand.nextInt(16) + 8;
-                int l2 = this.worldObj.getTopSolidOrLiquidBlock(blockpos.add(i2, 0, k3)).getY();
+                int l2 = this.world.getTopSolidOrLiquidBlock(blockpos.add(i2, 0, k3)).getY();
 
-                (new WorldGenCrashedProbe()).generate(this.worldObj, this.rand, blockpos.add(i2, l2, k3));
+                (new WorldGenCrashedProbe()).generate(this.world, this.rand, blockpos.add(i2, l2, k3));
             }
         }
 
-        this.dungeonGenerator.generateStructure(this.worldObj, this.rand, new ChunkPos(x, z));
+        this.dungeonGenerator.generateStructure(this.world, this.rand, new ChunkPos(x, z));
 
-        biomegenbase.decorate(this.worldObj, this.rand, new BlockPos(i, 0, j));
-        WorldEntitySpawner.performWorldGenSpawning(this.worldObj, biomegenbase, i + 8, j + 8, 16, 16, this.rand);
+        biomegenbase.decorate(this.world, this.rand, new BlockPos(i, 0, j));
+        WorldEntitySpawner.performWorldGenSpawning(this.world, biomegenbase, i + 8, j + 8, 16, 16, this.rand);
 
         BlockFalling.fallInstantly = false;
     }
@@ -371,7 +373,7 @@ public class ChunkProviderVenus extends ChunkProviderBase
     @Override
     public List<Biome.SpawnListEntry> getPossibleCreatures(EnumCreatureType creatureType, BlockPos pos)
     {
-        Biome biomegenbase = this.worldObj.getBiome(pos);
+        Biome biomegenbase = this.world.getBiome(pos);
 
         return biomegenbase.getSpawnableList(creatureType);
     }
@@ -379,6 +381,6 @@ public class ChunkProviderVenus extends ChunkProviderBase
     @Override
     public void recreateStructures(Chunk chunk, int x, int z)
     {
-        this.dungeonGenerator.generate(this.worldObj, x, z, null);
+        this.dungeonGenerator.generate(this.world, x, z, null);
     }
 }

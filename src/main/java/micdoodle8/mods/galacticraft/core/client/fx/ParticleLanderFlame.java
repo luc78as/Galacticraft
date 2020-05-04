@@ -4,7 +4,7 @@ import micdoodle8.mods.galacticraft.core.GalacticraftCore;
 import micdoodle8.mods.galacticraft.core.network.PacketSimple;
 import micdoodle8.mods.galacticraft.core.network.PacketSimple.EnumSimplePacket;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.renderer.VertexBuffer;
+import net.minecraft.client.renderer.BufferBuilder;
 import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -40,7 +40,7 @@ public class ParticleLanderFlame extends Particle
     }
 
     @Override
-    public void renderParticle(VertexBuffer worldRendererIn, Entity entityIn, float partialTicks, float rotationX, float rotationZ, float rotationYZ, float rotationXY, float rotationXZ)
+    public void renderParticle(BufferBuilder worldRendererIn, Entity entityIn, float partialTicks, float rotationX, float rotationZ, float rotationYZ, float rotationXY, float rotationXZ)
     {
         GL11.glDepthMask(false);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
@@ -75,7 +75,7 @@ public class ParticleLanderFlame extends Particle
         }
 
         this.setParticleTextureIndex(7 - this.particleAge * 8 / this.particleMaxAge);
-        this.moveEntity(this.motionX, this.motionY, this.motionZ);
+        this.move(this.motionX, this.motionY, this.motionZ);
 
         this.particleGreen -= 0.09F;
         this.particleRed -= 0.09F;
@@ -92,23 +92,20 @@ public class ParticleLanderFlame extends Particle
         this.motionY *= 0.9599999785423279D;
         this.motionZ *= 0.9599999785423279D;
 
-        if (this.worldObj.rand.nextInt(5) == 1)
+        if (this.world.rand.nextInt(5) == 1)
         {
-            final List<?> var3 = this.worldObj.getEntitiesWithinAABB(Entity.class, this.getEntityBoundingBox().expand(1.0D, 0.5D, 1.0D));
+            final List<?> var3 = this.world.getEntitiesWithinAABB(Entity.class, this.getBoundingBox().grow(1.0D, 0.5D, 1.0D));
 
             if (var3 != null)
             {
                 for (int var4 = 0; var4 < var3.size(); ++var4)
                 {
                     final Entity var5 = (Entity) var3.get(var4);
-    
-                    if (var5 instanceof EntityLivingBase)
+
+                    if (var5 instanceof EntityLivingBase && !var5.isDead && !var5.isBurning() && !var5.equals(this.ridingEntity))
                     {
-                        if (!var5.isDead && !var5.isBurning() && !var5.equals(this.ridingEntity))
-                        {
-                            var5.setFire(3);
-                            GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(EnumSimplePacket.S_SET_ENTITY_FIRE, GCCoreUtil.getDimensionID(var5.worldObj), new Object[] { var5.getEntityId() }));
-                        }
+                        var5.setFire(3);
+                        GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(EnumSimplePacket.S_SET_ENTITY_FIRE, GCCoreUtil.getDimensionID(var5.world), new Object[] { var5.getEntityId() }));
                     }
                 }
             }

@@ -78,7 +78,7 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
     }
 
     @Override
-    protected PathNavigate getNewNavigator(World worldIn)
+    protected PathNavigate createNavigator(World worldIn)
     {
         return new PathNavigateGround(this, worldIn);
     }
@@ -105,7 +105,7 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
     {
         super.onUpdate();
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             if (!this.shouldEvade && this.deathTicks <= 0)
             {
@@ -126,15 +126,15 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
                     {
                         if (dX * dX + dY * dY + dZ * dZ > distance * distance)
                         {
-                            float f = MathHelper.sqrt_double(d0) / distance;
+                            float f = MathHelper.sqrt(d0) / distance;
                             this.attackEntityWithRangedAttack(attackTarget, 0.0F);
-                            this.rangedAttackTime = MathHelper.floor_float(f * (float) (this.maxRangedAttackTime - this.minRangedAttackTime) + (float) this.minRangedAttackTime);
+                            this.rangedAttackTime = MathHelper.floor(f * (float) (this.maxRangedAttackTime - this.minRangedAttackTime) + (float) this.minRangedAttackTime);
                         }
                     }
                     else if (this.rangedAttackTime < 0)
                     {
-                        float f2 = MathHelper.sqrt_double(d0) / distance;
-                        this.rangedAttackTime = MathHelper.floor_float(f2 * (float)(this.maxRangedAttackTime - this.minRangedAttackTime) + (float)this.minRangedAttackTime);
+                        float f2 = MathHelper.sqrt(d0) / distance;
+                        this.rangedAttackTime = MathHelper.floor(f2 * (float)(this.maxRangedAttackTime - this.minRangedAttackTime) + (float)this.minRangedAttackTime);
                     }
                 }
             }
@@ -145,7 +145,7 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
             for (UUID id : this.spawnedPreload)
             {
                 Entity entity = null;
-                for (Entity e : this.worldObj.getLoadedEntityList())
+                for (Entity e : this.world.getLoadedEntityList())
                 {
                     if (e.getUniqueID().equals(id))
                     {
@@ -165,7 +165,7 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
             }
         }
 
-        if (!this.worldObj.isRemote && this.shouldEvade)
+        if (!this.world.isRemote && this.shouldEvade)
         {
             if (this.spawner != null)
             {
@@ -193,12 +193,12 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
                             {
                                 if (this.juicersSpawned.size() < 6)
                                 {
-                                    EntityJuicer juicer = new EntityJuicer(this.worldObj);
+                                    EntityJuicer juicer = new EntityJuicer(this.world);
                                     double angle = Math.random() * 2 * Math.PI;
                                     double dist = 3.0F;
                                     juicer.setPosition(this.posX + dist * Math.sin(angle), this.posY + 0.2F, this.posZ + dist * Math.cos(angle));
                                     juicer.setHanging(true);
-                                    this.worldObj.spawnEntityInWorld(juicer);
+                                    this.world.spawnEntity(juicer);
                                     this.juicersSpawned.add(juicer);
                                 }
                             }
@@ -275,7 +275,7 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
     }
 
     @Override
-    protected SoundEvent getHurtSound()
+    protected SoundEvent getHurtSound(DamageSource damageSourceIn)
     {
         return SoundEvents.ENTITY_SPIDER_HURT;
     }
@@ -371,9 +371,9 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
     @Override
     public void attackEntityWithRangedAttack(EntityLivingBase target, float damage)
     {
-        EntityWebShot entityarrow = new EntityWebShot(this.worldObj, this, target, 0.8F, (float)(14 - this.worldObj.getDifficulty().getDifficultyId() * 4));
+        EntityWebShot entityarrow = new EntityWebShot(this.world, this, target, 0.8F, (float)(14 - this.world.getDifficulty().getDifficultyId() * 4));
         this.playSound(SoundEvents.ENTITY_ARROW_SHOOT, 1.0F, 1.0F / (this.getRNG().nextFloat() * 0.4F + 0.8F));
-        this.worldObj.spawnEntityInWorld(entityarrow);
+        this.world.spawnEntity(entityarrow);
     }
 
     @Override
@@ -421,7 +421,7 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
     @Override
     public EntityItem entityDropItem(ItemStack par1ItemStack, float par2)
     {
-        final EntityItem entityitem = new EntityItem(this.worldObj, this.posX, this.posY + par2, this.posZ, par1ItemStack);
+        final EntityItem entityitem = new EntityItem(this.world, this.posX, this.posY + par2, this.posZ, par1ItemStack);
         entityitem.motionY = -2.0D;
         entityitem.setDefaultPickupDelay();
         if (this.captureDrops)
@@ -430,7 +430,7 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
         }
         else
         {
-            this.worldObj.spawnEntityInWorld(entityitem);
+            this.world.spawnEntity(entityitem);
         }
         return entityitem;
     }
@@ -445,5 +445,12 @@ public class EntitySpiderQueen extends EntityBossBase implements IEntityBreathab
     public BossInfo.Color getHealthBarColor()
     {
         return BossInfo.Color.PURPLE;
+    }
+
+    @Override
+    public void setSwingingArms(boolean swingingArms)
+    {
+        // TODO Auto-generated method stub
+        //TODO for 1.12.2
     }
 }

@@ -72,7 +72,7 @@ public class BlockGlowstoneTorch extends BlockTorchBase implements IShiftDescrip
     }
 
     @Override
-    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn)
+    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
     {
         if (!this.checkForDrop(worldIn, pos, state))
         {

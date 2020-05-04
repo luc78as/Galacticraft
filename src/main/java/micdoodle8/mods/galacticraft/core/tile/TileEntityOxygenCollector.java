@@ -12,10 +12,11 @@ import net.minecraft.block.BlockAir;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.ISidedInventory;
+import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.EnumPlantType;
@@ -25,21 +26,22 @@ import net.minecraftforge.fml.relauncher.Side;
 
 import java.util.EnumSet;
 
-public class TileEntityOxygenCollector extends TileEntityOxygen implements IInventoryDefaults, ISidedInventory
+public class TileEntityOxygenCollector extends TileEntityOxygen
 {
     public boolean active;
     public static final int OUTPUT_PER_TICK = 100;
+    public static float OXYGEN_PER_PLANT = 0.75F;
     @NetworkedField(targetSide = Side.CLIENT)
     public float lastOxygenCollected;
-    private ItemStack[] containingItems = new ItemStack[1];
     private boolean noAtmosphericOxygen = true;
     private boolean isInitialised = false;
     private boolean producedLastTick = false;
 
     public TileEntityOxygenCollector()
     {
-        super(6000, 0);
+        super("container.oxygencollector.name", 6000, 0);
         this.noRedstoneControl = true;
+        inventory = NonNullList.withSize(1, ItemStack.EMPTY);
     }
 
     @Override
@@ -53,7 +55,7 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
     {
         super.update();
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             producedLastTick = this.getOxygenStored() < this.getMaxOxygenStored();
 
@@ -70,7 +72,7 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
             //
             // Vector3 thisVec = new Vector3(this);
             // TileEntity tileEntity =
-            // thisVec.modifyPositionFromSide(this.getOxygenOutputDirection()).getTileEntity(this.worldObj);
+            // thisVec.modifyPositionFromSide(this.getOxygenOutputDirection()).getTileEntity(this.world);
             //
             // if (tileEntity instanceof IGasAcceptor)
             // {
@@ -98,7 +100,7 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
             // }
 
             //Approximately once every 40 ticks, search out oxygen producing blocks
-            if (this.worldObj.rand.nextInt(10) == 0)
+            if (this.world.rand.nextInt(10) == 0)
             {
                 if (this.hasEnoughEnergyToRun)
                 {
@@ -108,7 +110,7 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
 
                     if (!this.isInitialised)
                     {
-                        this.noAtmosphericOxygen = (this.worldObj.provider instanceof IGalacticraftWorldProvider && !((IGalacticraftWorldProvider) this.worldObj.provider).isGasPresent(EnumAtmosphericGas.OXYGEN));
+                        this.noAtmosphericOxygen = (this.world.provider instanceof IGalacticraftWorldProvider && !((IGalacticraftWorldProvider) this.world.provider).isGasPresent(EnumAtmosphericGas.OXYGEN));
                         this.isInitialised = true;
                     }
 
@@ -127,9 +129,9 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
                             {
                                 miny = 0;
                             }
-                            if (maxy >= this.worldObj.getHeight())
+                            if (maxy >= this.world.getHeight())
                             {
-                                maxy = this.worldObj.getHeight() - 1;
+                                maxy = this.world.getHeight() - 1;
                             }
 
                             // Loop the x and the z first, so the y loop will be at
@@ -142,7 +144,7 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
                                 // Preload the first chunk for the z loop - there
                                 // can be a maximum of 2 chunks in the z loop
                                 int chunkz = this.getPos().getZ() - 5 >> 4;
-                                Chunk chunk = this.worldObj.getChunkFromChunkCoords(chunkx, chunkz);
+                                Chunk chunk = this.world.getChunkFromChunkCoords(chunkx, chunkz);
                                 for (int z = this.getPos().getZ() - 5; z <= this.getPos().getZ() + 5; z++)
                                 {
                                     if (z >> 4 != chunkz)
@@ -150,7 +152,7 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
                                         // moved across z chunk boundary into a new
                                         // chunk, so load the new chunk
                                         chunkz = z >> 4;
-                                        chunk = this.worldObj.getChunkFromChunkCoords(chunkx, chunkz);
+                                        chunk = this.world.getChunkFromChunkCoords(chunkx, chunkz);
                                     }
                                     for (int y = miny; y <= maxy; y++)
                                     {
@@ -164,9 +166,9 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
                                         if (!(state.getBlock() instanceof BlockAir))
                                         {
                                             BlockPos pos = new BlockPos(x, y, z);
-                                            if (state.getBlock().isLeaves(state, this.worldObj, pos) || state.getBlock() instanceof IPlantable && ((IPlantable) state.getBlock()).getPlantType(this.worldObj, pos) == EnumPlantType.Crop)
+                                            if (state.getBlock().isLeaves(state, this.world, pos) || state.getBlock() instanceof IPlantable && ((IPlantable) state.getBlock()).getPlantType(this.world, pos) == EnumPlantType.Crop)
                                             {
-                                                nearbyLeaves += 0.075F * 10F;
+                                                nearbyLeaves += OXYGEN_PER_PLANT;
                                             }
                                         }
                                     }
@@ -193,153 +195,12 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
         }
     }
 
-    @Override
-    public void readFromNBT(NBTTagCompound nbt)
-    {
-        super.readFromNBT(nbt);
-
-        final NBTTagList var2 = nbt.getTagList("Items", 10);
-        this.containingItems = new ItemStack[this.getSizeInventory()];
-
-        for (int var3 = 0; var3 < var2.tagCount(); ++var3)
-        {
-            final NBTTagCompound var4 = var2.getCompoundTagAt(var3);
-            final int var5 = var4.getByte("Slot") & 255;
-
-            if (var5 < this.containingItems.length)
-            {
-                this.containingItems[var5] = ItemStack.loadItemStackFromNBT(var4);
-            }
-        }
-    }
-
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound nbt)
-    {
-        super.writeToNBT(nbt);
-
-        final NBTTagList list = new NBTTagList();
-
-        for (int var3 = 0; var3 < this.containingItems.length; ++var3)
-        {
-            if (this.containingItems[var3] != null)
-            {
-                final NBTTagCompound var4 = new NBTTagCompound();
-                var4.setByte("Slot", (byte) var3);
-                this.containingItems[var3].writeToNBT(var4);
-                list.appendTag(var4);
-            }
-        }
-
-        nbt.setTag("Items", list);
-        return nbt;
-    }
-
-    @Override
-    public int getSizeInventory()
-    {
-        return this.containingItems.length;
-    }
-
-    @Override
-    public ItemStack getStackInSlot(int par1)
-    {
-        return this.containingItems[par1];
-    }
-
-    @Override
-    public ItemStack decrStackSize(int par1, int par2)
-    {
-        if (this.containingItems[par1] != null)
-        {
-            ItemStack var3;
-
-            if (this.containingItems[par1].stackSize <= par2)
-            {
-                var3 = this.containingItems[par1];
-                this.containingItems[par1] = null;
-                return var3;
-            }
-            else
-            {
-                var3 = this.containingItems[par1].splitStack(par2);
-
-                if (this.containingItems[par1].stackSize == 0)
-                {
-                    this.containingItems[par1] = null;
-                }
-
-                return var3;
-            }
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    @Override
-    public ItemStack removeStackFromSlot(int par1)
-    {
-        if (this.containingItems[par1] != null)
-        {
-            final ItemStack var2 = this.containingItems[par1];
-            this.containingItems[par1] = null;
-            return var2;
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    @Override
-    public void setInventorySlotContents(int par1, ItemStack par2ItemStack)
-    {
-        this.containingItems[par1] = par2ItemStack;
-
-        if (par2ItemStack != null && par2ItemStack.stackSize > this.getInventoryStackLimit())
-        {
-            par2ItemStack.stackSize = this.getInventoryStackLimit();
-        }
-    }
-
-    @Override
-    public String getName()
-    {
-        return GCCoreUtil.translate("container.oxygencollector.name");
-    }
-
-    @Override
-    public boolean hasCustomName()
-    {
-        return true;
-    }
-
-    @Override
-    public int getInventoryStackLimit()
-    {
-        return 64;
-    }
-
-    @Override
-    public boolean isUseableByPlayer(EntityPlayer par1EntityPlayer)
-    {
-        return this.worldObj.getTileEntity(this.getPos()) == this && par1EntityPlayer.getDistanceSq(this.getPos().getX() + 0.5D, this.getPos().getY() + 0.5D, this.getPos().getZ() + 0.5D) <= 64.0D;
-    }
-
     // ISidedInventory Implementation:
 
     @Override
     public int[] getSlotsForFace(EnumFacing side)
     {
         return new int[] { 0 };
-    }
-
-    @Override
-    public boolean canInsertItem(int slotID, ItemStack itemstack, EnumFacing side)
-    {
-        return this.isItemValidForSlot(slotID, itemstack);
     }
 
     @Override
@@ -363,7 +224,7 @@ public class TileEntityOxygenCollector extends TileEntityOxygen implements IInve
     @Override
     public EnumFacing getFront()
     {
-        IBlockState state = this.worldObj.getBlockState(getPos()); 
+        IBlockState state = this.world.getBlockState(getPos()); 
         if (state.getBlock() instanceof BlockOxygenCollector)
         {
             return state.getValue(BlockOxygenCollector.FACING);

@@ -23,9 +23,9 @@ public class CommandJoinSpaceRace extends CommandBase
     }
 
     @Override
-    public String getCommandUsage(ICommandSender var1)
+    public String getUsage(ICommandSender var1)
     {
-        return "/" + this.getCommandName();
+        return "/" + this.getName();
     }
 
     @Override
@@ -35,7 +35,7 @@ public class CommandJoinSpaceRace extends CommandBase
     }
 
     @Override
-    public String getCommandName()
+    public String getName()
     {
         return "joinrace";
     }
@@ -56,7 +56,7 @@ public class CommandJoinSpaceRace extends CommandBase
                     if (stats.getSpaceRaceInviteTeamID() > 0)
                     {
                         SpaceRaceManager.sendSpaceRaceData(server, playerBase, SpaceRaceManager.getSpaceRaceFromID(stats.getSpaceRaceInviteTeamID()));
-                        GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_OPEN_JOIN_RACE_GUI, GCCoreUtil.getDimensionID(playerBase.worldObj), new Object[] { stats.getSpaceRaceInviteTeamID() }), playerBase);
+                        GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_OPEN_JOIN_RACE_GUI, GCCoreUtil.getDimensionID(playerBase.world), new Object[] { stats.getSpaceRaceInviteTeamID() }), playerBase);
                     }
                     else
                     {
@@ -75,7 +75,7 @@ public class CommandJoinSpaceRace extends CommandBase
         }
         else
         {
-            throw new WrongUsageException(GCCoreUtil.translateWithFormat("commands.joinrace.no_team", this.getCommandUsage(sender)), new Object[0]);
+            throw new WrongUsageException(GCCoreUtil.translateWithFormat("commands.joinrace.no_team", this.getUsage(sender)), new Object[0]);
         }
     }
 }

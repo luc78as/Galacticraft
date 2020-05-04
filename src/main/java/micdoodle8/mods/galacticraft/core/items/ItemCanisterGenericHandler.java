@@ -1,5 +1,8 @@
 package micdoodle8.mods.galacticraft.core.items;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
@@ -7,21 +10,30 @@ import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.FluidTankProperties;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
-public class ItemCanisterGenericHandler implements IFluidHandler, ICapabilityProvider
+public class ItemCanisterGenericHandler implements IFluidHandlerItem, ICapabilityProvider
 {
+    @Nonnull
     protected ItemStack container;
 
-    public ItemCanisterGenericHandler(ItemStack container)
+    public ItemCanisterGenericHandler(@Nonnull ItemStack container)
     {
-        this.container = container;  //never varies
+        this.container = container;
     }
 
+    @Nonnull
+    @Override
+    public ItemStack getContainer()
+    {
+    	return container;  //never varies
+    }
+
+    @Nullable
     public FluidStack getFluid()
     {
-        if (container.stackSize > 0 && container.getItem() instanceof ItemCanisterGeneric)
+        if (container.getCount() > 0 && container.getItem() instanceof ItemCanisterGeneric)
         {
         	return ((ItemCanisterGeneric)container.getItem()).getFluid(container);
         }
@@ -39,9 +51,9 @@ public class ItemCanisterGenericHandler implements IFluidHandler, ICapabilityPro
     @Override
     public IFluidTankProperties[] getTankProperties()
     {
-        if (container.stackSize > 0 && container.getItem() instanceof ItemCanisterGeneric)
+        if (container.getCount() > 0 && container.getItem() instanceof ItemCanisterGeneric)
         {
-            return new FluidTankProperties[] { new FluidTankProperties(getFluid(), ItemCanisterGeneric.EMPTY - 1) };
+        	return new FluidTankProperties[] { new FluidTankProperties(getFluid(), ItemCanisterGeneric.EMPTY - 1) };
         }
         return new FluidTankProperties[0];
     }
@@ -49,7 +61,7 @@ public class ItemCanisterGenericHandler implements IFluidHandler, ICapabilityPro
     @Override
     public int fill(FluidStack resource, boolean doFill)
     {
-        if (container.stackSize > 0 && container.getItem() instanceof ItemCanisterGeneric)
+        if (container.getCount() > 0 && container.getItem() instanceof ItemCanisterGeneric)
         {
         	return ((ItemCanisterGeneric)container.getItem()).fill(container, resource, doFill);
         }
@@ -59,7 +71,7 @@ public class ItemCanisterGenericHandler implements IFluidHandler, ICapabilityPro
     @Override
     public FluidStack drain(int maxDrain, boolean doDrain)
     {
-        if (container.stackSize > 0 && container.getItem() instanceof ItemCanisterGeneric)
+        if (container.getCount() > 0 && container.getItem() instanceof ItemCanisterGeneric)
         {
         	return ((ItemCanisterGeneric)container.getItem()).drain(container, maxDrain, doDrain);
         }
@@ -78,7 +90,7 @@ public class ItemCanisterGenericHandler implements IFluidHandler, ICapabilityPro
 
     public boolean canFillFluidType(FluidStack fluid)
     {
-        if (container.stackSize > 0 && container.getItem() instanceof ItemCanisterGeneric && fluid != null && fluid.getFluid() != null)
+        if (container.getCount() > 0 && container.getItem() instanceof ItemCanisterGeneric && fluid != null && fluid.getFluid() != null)
         {
         	return ((ItemCanisterGeneric)container.getItem()).getAllowedFluid().equalsIgnoreCase(fluid.getFluid().getName());
         }
@@ -92,23 +104,24 @@ public class ItemCanisterGenericHandler implements IFluidHandler, ICapabilityPro
 
     protected void setContainerToEmpty()
     {
-        if (container.stackSize > 0 && container.getItem() instanceof ItemCanisterGeneric)
+        if (container.getCount() > 0 && container.getItem() instanceof ItemCanisterGeneric)
         {
         	((ItemCanisterGeneric)container.getItem()).setDamage(container, ItemCanisterGeneric.EMPTY);;
         }
     }
 
     @Override
-    public boolean hasCapability(Capability<?> capability, EnumFacing facing)
+    public boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing)
     {
-        return capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY;
+        return capability == CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing facing)
+    @Nullable
+    public <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing)
     {
-        return capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY ? (T) this : null;
+        return capability == CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY ? (T) this : null;
     }
 }
 

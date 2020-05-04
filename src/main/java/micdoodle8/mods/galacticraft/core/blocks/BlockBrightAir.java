@@ -5,7 +5,6 @@ import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.IBlockAccess;
@@ -21,12 +20,6 @@ public class BlockBrightAir extends BlockAir
         this.setHardness(0.0F);
         this.setUnlocalizedName(assetName);
         this.setLightLevel(1.0F);
-    }
-
-    @Override
-    public boolean canReplace(World worldIn, BlockPos pos, EnumFacing side, ItemStack stack)
-    {
-        return true;
     }
 
     @Override

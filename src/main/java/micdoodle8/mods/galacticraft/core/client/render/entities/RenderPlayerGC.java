@@ -40,7 +40,7 @@ import org.lwjgl.opengl.GL11;
  * The thermal armor render is done after the corresponding body part of the player is drawn.
  * This ALSO patches RenderPlayer so that it uses ModelPlayerGC in place of ModelPlayer to draw the player.
  * <p>
- * Finally, this also adds a hook into rotateCorpse so as to fire a RotatePlayerEvent - used by the Cryogenic Chamber
+ * Finally, this also adds a hook into applyRotations so as to fire a RotatePlayerEvent - used by the Cryogenic Chamber
  *
  * @author User
  */
@@ -80,7 +80,7 @@ public class RenderPlayerGC extends RenderPlayer
         int skullLayerIndex = -1;
         for (int i = 0; i < this.layerRenderers.size(); i++)
         {
-            LayerRenderer layer = this.layerRenderers.get(i); 
+            LayerRenderer layer = this.layerRenderers.get(i);
             if (layer instanceof LayerHeldItem)
             {
                 itemLayerIndex = i;
@@ -91,7 +91,7 @@ public class RenderPlayerGC extends RenderPlayer
                 {
                     try {
                         f1.set(layer, this);
-                    } catch (Exception ignore) {}
+                    } catch (Exception ignore) { }
                 }
             }
             else if (layer instanceof LayerCustomHead)
@@ -138,11 +138,28 @@ public class RenderPlayerGC extends RenderPlayer
         this.mainModel = new ModelPlayerGC(0.0F, smallArms);
         
         //Preserve any layers added by other mods, for example WearableBackpacks
-        try
+        Class clazz = old.getClass().getSuperclass();
+        Field f = null;
+        do {
+            try
+            {
+                f = clazz.getDeclaredField(GCCoreUtil.isDeobfuscated() ? "layerRenderers" : "field_177097_h");
+                f.setAccessible(true);
+            } catch (Exception ignore) { }
+            clazz = clazz.getSuperclass();
+        } while (f == null && clazz != null);
+        if (f != null) try
         {
-            Field f = old.getClass().getSuperclass().getDeclaredField(GCCoreUtil.isDeobfuscated() ? "layerRenderers" : "field_177097_h");
-            f.setAccessible(true);
             List<LayerRenderer<?>> layers = (List<LayerRenderer<?>>) f.get(old);
+            if(layers.size() == 0)
+            {
+                //Specifically fix for compatibility with MetaMorph's non-standard "RenderSubPlayer" class
+                try {
+                Field g = old.getClass().getDeclaredField("original");
+                old = (RenderPlayer) g.get(old);
+                layers = (List<LayerRenderer<?>>) f.get(old);
+                } catch (Exception ignore) { }
+            }
             if (layers.size() > 0)
             {
                 for (LayerRenderer<?> oldLayer : layers)
@@ -217,7 +234,7 @@ public class RenderPlayerGC extends RenderPlayer
     }
 
     @Override
-    protected void rotateCorpse(AbstractClientPlayer abstractClientPlayer, float par2, float par3, float par4)
+    protected void applyRotations(AbstractClientPlayer abstractClientPlayer, float par2, float par3, float par4)
     {
         if (abstractClientPlayer.isEntityAlive() && abstractClientPlayer.isPlayerSleeping())
         {
@@ -226,7 +243,7 @@ public class RenderPlayerGC extends RenderPlayer
 
             if (!event.vanillaOverride)
             {
-                super.rotateCorpse(abstractClientPlayer, par2, par3, par4);
+                super.applyRotations(abstractClientPlayer, par2, par3, par4);
             }
             else if (event.shouldRotate == null)
             {
@@ -238,16 +255,16 @@ public class RenderPlayerGC extends RenderPlayer
 
                 if (abstractClientPlayer.bedLocation != null)
                 {
-                    IBlockState bed = abstractClientPlayer.worldObj.getBlockState(abstractClientPlayer.bedLocation);
+                    IBlockState bed = abstractClientPlayer.world.getBlockState(abstractClientPlayer.bedLocation);
 
-                    if (bed.getBlock().isBed(bed, abstractClientPlayer.worldObj, abstractClientPlayer.bedLocation, abstractClientPlayer))
+                    if (bed.getBlock().isBed(bed, abstractClientPlayer.world, abstractClientPlayer.bedLocation, abstractClientPlayer))
                     {
                         if (bed.getBlock() == GCBlocks.fakeBlock && bed.getValue(BlockMulti.MULTI_TYPE) == BlockMulti.EnumBlockMultiType.CRYO_CHAMBER)
                         {
-                            TileEntity tile = event.getEntityPlayer().worldObj.getTileEntity(abstractClientPlayer.bedLocation);
+                            TileEntity tile = event.getEntityPlayer().world.getTileEntity(abstractClientPlayer.bedLocation);
                             if (tile instanceof TileEntityMulti)
                             {
-                                bed = event.getEntityPlayer().worldObj.getBlockState(((TileEntityMulti) tile).mainBlockPosition);
+                                bed = event.getEntityPlayer().world.getBlockState(((TileEntityMulti) tile).mainBlockPosition);
                             }
                         }
 
@@ -296,7 +313,7 @@ public class RenderPlayerGC extends RenderPlayer
                     }
                 }
             }
-            super.rotateCorpse(abstractClientPlayer, par2, par3, par4);
+            super.applyRotations(abstractClientPlayer, par2, par3, par4);
         }
     }
 

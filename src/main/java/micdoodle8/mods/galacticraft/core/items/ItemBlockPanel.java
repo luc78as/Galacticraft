@@ -42,7 +42,7 @@ public class ItemBlockPanel extends ItemBlockDesc
     }
 
     @Override
-    public EnumActionResult onItemUseFirst(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, EnumHand hand)
+    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, EnumHand hand)
     {
         if (!player.isSneaking())
         {
@@ -51,6 +51,19 @@ public class ItemBlockPanel extends ItemBlockDesc
         IBlockState state = world.getBlockState(pos);
         if (state.getBlock().isOpaqueCube(state) && !(state.getBlock() instanceof BlockPanelLighting))
         {
+        	ItemStack stack;
+            if (hand == EnumHand.OFF_HAND)
+            {
+            	stack = player.inventory.offHandInventory.get(0);
+            }
+            else
+            {
+            	stack = player.inventory.getStackInSlot(player.inventory.currentItem);
+            }
+            if (stack.getItem() != this)
+            {
+            	return EnumActionResult.FAIL;
+            }
             if (world.isRemote)
             {
                 BlockPanelLighting.updateClient(stack.getItemDamage(), state);

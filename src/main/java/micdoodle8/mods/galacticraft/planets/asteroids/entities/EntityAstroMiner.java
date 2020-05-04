@@ -36,6 +36,8 @@ import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -47,10 +49,13 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.IPlantable;
@@ -60,12 +65,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.lwjgl.opengl.GL11;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
-public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPacketReceiver, IEntityNoisy, IAntiGrav, ITelemetry
+public class EntityAstroMiner extends Entity implements IInventory, IPacketReceiver, IEntityNoisy, IAntiGrav, ITelemetry
 {
     private static final DataParameter<Float> DAMAGE = EntityDataManager.createKey(EntityAstroMiner.class, DataSerializers.FLOAT);
 
@@ -96,7 +98,9 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     private boolean TEMPDEBUG = false;
     private boolean TEMPFAST = false;
 
-    public ItemStack[] cargoItems;
+    public boolean serverTick = false;
+    public int serverTickSave;
+    public NonNullList<ItemStack> stacks;
 
     public int energyLevel;
     public int mineCount = 0;
@@ -202,11 +206,11 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         //Add configurable blacklist
     }
 
-    public EntityAstroMiner(World world, ItemStack[] cargo, int energy)
+    public EntityAstroMiner(World world, NonNullList<ItemStack> cargo, int energy)
     {
         this(world);
         this.toAddToServer = true;
-        this.cargoItems = cargo.clone();
+        this.stacks = cargo;
         this.energyLevel = energy;
     }
 
@@ -254,70 +258,64 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     @Override
     public int getSizeInventory()
     {
-        return this.cargoItems.length;
+        return this.stacks.size();
     }
 
     @Override
     public ItemStack getStackInSlot(int var1)
     {
-        return this.cargoItems[var1];
+        return this.stacks.get(var1);
     }
 
     @Override
-    public ItemStack decrStackSize(int var1, int var2)
+    public ItemStack decrStackSize(int index, int count)
     {
-        if (this.cargoItems[var1] != null)
-        {
-            ItemStack var3;
+        ItemStack itemstack = ItemStackHelper.getAndSplit(this.stacks, index, count);
 
-            if (this.cargoItems[var1].stackSize <= var2)
+        if (!itemstack.isEmpty())
+        {
+            this.markDirty();
+        }
+
+        return itemstack;
+    }
+
+    @Override
+    public ItemStack removeStackFromSlot(int index)
+    {
+        ItemStack oldstack = ItemStackHelper.getAndRemove(this.stacks, index);
+        if (!oldstack.isEmpty())
+        {
+        	this.markDirty();
+        }
+    	return oldstack;
+    }
+
+    @Override
+    public void setInventorySlotContents(int index, ItemStack stack)
+    {
+        this.stacks.set(index, stack);
+
+        if (stack.getCount() > this.getInventoryStackLimit())
+        {
+            stack.setCount(this.getInventoryStackLimit());
+        }
+
+        this.markDirty();
+    }
+
+    @Override
+    public boolean isEmpty()
+    {
+        for (ItemStack itemstack : this.stacks)
+        {
+            if (!itemstack.isEmpty())
             {
-                var3 = this.cargoItems[var1];
-                this.cargoItems[var1] = null;
-                return var3;
-            }
-            else
-            {
-                var3 = this.cargoItems[var1].splitStack(var2);
-
-                if (this.cargoItems[var1].stackSize == 0)
-                {
-                    this.cargoItems[var1] = null;
-                }
-
-                return var3;
+                return false;
             }
         }
-        else
-        {
-            return null;
-        }
-    }
 
-    @Override
-    public ItemStack removeStackFromSlot(int var1)
-    {
-        if (this.cargoItems[var1] != null)
-        {
-            final ItemStack var2 = this.cargoItems[var1];
-            this.cargoItems[var1] = null;
-            return var2;
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    @Override
-    public void setInventorySlotContents(int var1, ItemStack var2)
-    {
-        this.cargoItems[var1] = var2;
-
-        if (var2 != null && var2.stackSize > this.getInventoryStackLimit())
-        {
-            var2.stackSize = this.getInventoryStackLimit();
-        }
+        return true;
     }
 
     @Override
@@ -333,9 +331,9 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     }
 
     @Override
-    public boolean isUseableByPlayer(EntityPlayer var1)
+    public boolean isUsableByPlayer(EntityPlayer var1)
     {
-        return !this.isDead && var1.getDistanceSqToEntity(this) <= 64.0D;
+        return !this.isDead && var1.getDistanceSq(this) <= 64.0D;
     }
 
     @Override
@@ -355,32 +353,62 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         return true;
     }
 
+    //We don't use these because we use forge containers
+    @Override
+    public void openInventory(EntityPlayer player)
+    {
+    }
+
+    //We don't use these because we use forge containers
+    @Override
+    public void closeInventory(EntityPlayer player)
+    {
+    }
+
+    @Override
+    public int getField(int id)
+    {
+        return 0;
+    }
+
+    @Override
+    public void setField(int id, int value)
+    {
+    }
+
+    @Override
+    public int getFieldCount()
+    {
+        return 0;
+    }
+
+    @Override
+    public void clear()
+    {
+
+    }
+
     private boolean emptyInventory(TileEntityMinerBase minerBase)
     {
         boolean doneOne = false;
-        for (int i = 0; i < this.cargoItems.length; i++)
+        for (int i = 0; i < this.stacks.size(); i++)
         {
-            ItemStack stack = this.cargoItems[i];
-            if (stack == null)
+            ItemStack stack = this.stacks.get(i);
+            if (stack.isEmpty())
             {
                 continue;
             }
-            if (stack.stackSize == 0)
-            {
-                this.cargoItems[i] = null;
-                continue;
-            }
-            int sizeprev = stack.stackSize;
+            int sizeprev = stack.getCount();
             minerBase.addToInventory(stack);
-            if (stack == null || stack.stackSize == 0)
+            if (stack.isEmpty())
             {
-                this.cargoItems[i] = null;
+                this.stacks.set(i, ItemStack.EMPTY);
                 this.markDirty();
                 return true;
             }
-            else if (stack.stackSize < sizeprev)
+            else if (stack.getCount() < sizeprev)
             {
-                this.cargoItems[i] = stack;
+                this.stacks.set(i, stack);
                 this.markDirty();
                 //Something was transferred although some stacks remaining
                 return true;
@@ -393,6 +421,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     @Override
     public void onUpdate()
     {
+        this.serverTick = false;
         if (this.posY < -64.0D)
         {
             this.setDead();
@@ -408,7 +437,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         this.facing = this.getFacingFromRotation();
         this.setBoundingBoxForFacing();
 
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             //CLIENT CODE
             if (this.turnProgress == 0)
@@ -478,9 +507,9 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         {
             this.flagLink = false;
             this.checkPlayer();
-            if (posBase.blockExists(worldObj))
+            if (posBase.blockExists(this.world))
             {
-                TileEntity tileEntity = posBase.getTileEntity(this.worldObj);
+                TileEntity tileEntity = posBase.getTileEntity(this.world);
                 if (tileEntity instanceof TileEntityMinerBase && ((TileEntityMinerBase) tileEntity).isMaster && !tileEntity.isInvalid())
                 {
                     //Create link with base on loading the EntityAstroMiner
@@ -504,11 +533,11 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
                 }
                 else
                 {
-                    if (this.playerMP != null && (this.givenFailMessage & (1 << FAIL_BASEDESTROYED)) == 0)
-                    {
-                        this.playerMP.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner" + FAIL_BASEDESTROYED + ".fail")));
-                        this.givenFailMessage += (1 << FAIL_BASEDESTROYED);
-                        //Continue mining even though base was destroyed - maybe it will be replaced
+					if (this.playerMP != null && (this.givenFailMessage & (1 << FAIL_BASEDESTROYED)) == 0)
+					{
+	                    this.playerMP.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner" + FAIL_BASEDESTROYED + ".fail")));
+	                    this.givenFailMessage += (1 << FAIL_BASEDESTROYED);
+	                    //Continue mining even though base was destroyed - maybe it will be replaced
                     }
                 }
             }
@@ -527,7 +556,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
                 this.motionX = 0;
                 this.motionY = 0;
                 this.motionZ = 0;
-                GalacticraftCore.packetPipeline.sendToDimension(new PacketDynamic(this), GCCoreUtil.getDimensionID(this.worldObj));
+                GalacticraftCore.packetPipeline.sendToDimension(new PacketDynamic(this), GCCoreUtil.getDimensionID(this.world));
             }
             return;
         }
@@ -555,7 +584,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
             {
                 this.freeze(FAIL_OUTOFENERGY);
             }
-            else if (!(this.worldObj.provider instanceof WorldProviderAsteroids) && this.ticksExisted % 2 == 0)
+            else if (!(this.world.provider instanceof WorldProviderAsteroids) && this.ticksExisted % 2 == 0)
             {
                 this.energyLevel--;
             }
@@ -628,7 +657,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
             break;
         }
 
-        GalacticraftCore.packetPipeline.sendToDimension(new PacketDynamic(this), GCCoreUtil.getDimensionID(this.worldObj));
+        GalacticraftCore.packetPipeline.sendToDimension(new PacketDynamic(this), GCCoreUtil.getDimensionID(this.world));
 
         this.posX += this.motionX;
         this.posY += this.motionY;
@@ -673,7 +702,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         this.motionZ = 0;
         if (this.playerMP != null && (this.givenFailMessage & (1 << i)) == 0)
         {
-            this.playerMP.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner" + i + ".fail")));
+            this.playerMP.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner" + i + ".fail")));
             this.givenFailMessage += (1 << i);
         }
     }
@@ -691,9 +720,9 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         int y = buffer.readInt();
         int z = buffer.readInt();
         BlockPos pos = new BlockPos(x, y, z);
-        if (this.worldObj.isBlockLoaded(pos))
+        if (this.world.isBlockLoaded(pos))
         {
-            TileEntity tile = this.worldObj.getTileEntity(pos);
+            TileEntity tile = this.world.getTileEntity(pos);
             if (tile instanceof TileEntityMinerBase)
             {
                 ((TileEntityMinerBase) tile).linkedMiner = this;
@@ -705,7 +734,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     @Override
     public void getNetworkedData(ArrayList<Object> list)
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             return;
         }
@@ -757,7 +786,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
 
     private void atBase()
     {
-        TileEntity tileEntity = posBase.getTileEntity(this.worldObj);
+        TileEntity tileEntity = posBase.getTileEntity(this.world);
 
         if (!(tileEntity instanceof TileEntityMinerBase) || tileEntity.isInvalid() || !((TileEntityMinerBase) tileEntity).isMaster)
         {
@@ -798,7 +827,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
             {
                 if (this.playerMP != null && (this.givenFailMessage & 64) == 0)
                 {
-                    this.playerMP.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner6.fail")));
+                    this.playerMP.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner6.fail")));
                     this.givenFailMessage += 64;
                 }
             }
@@ -809,13 +838,8 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     {
         for (int i = 0; i < this.getSizeInventory(); i++)
         {
-            if (this.cargoItems[i] == null)
+            if (this.stacks.get(i).isEmpty())
             {
-                return true;
-            }
-            if (this.cargoItems[i].stackSize == 0)
-            {
-                this.cargoItems[i] = null;
                 return true;
             }
         }
@@ -906,8 +930,8 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
             return;
         }
 
-        BlockVec3 inFront = new BlockVec3(MathHelper.floor_double(this.posX + 0.5D), MathHelper.floor_double(this.posY + 1.5D), MathHelper.floor_double(this.posZ + 0.5D));
-        int otherEnd = (this.worldObj.provider instanceof WorldProviderAsteroids) ? this.MINE_LENGTH_AST : this.MINE_LENGTH;
+        BlockVec3 inFront = new BlockVec3(MathHelper.floor(this.posX + 0.5D), MathHelper.floor(this.posY + 1.5D), MathHelper.floor(this.posZ + 0.5D));
+        int otherEnd = (this.world.provider instanceof WorldProviderAsteroids) ? this.MINE_LENGTH_AST : this.MINE_LENGTH;
         if (this.baseFacing == EnumFacing.NORTH || this.baseFacing == EnumFacing.WEST)
         {
             otherEnd = -otherEnd;
@@ -1019,7 +1043,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
             this.mineCountDown--;
             return false;
         }
-        BlockVec3 inFront = new BlockVec3(MathHelper.floor_double(this.posX + 0.5D), MathHelper.floor_double(this.posY + 1.5D), MathHelper.floor_double(this.posZ + 0.5D));
+        BlockVec3 inFront = new BlockVec3(MathHelper.floor(this.posX + 0.5D), MathHelper.floor(this.posY + 1.5D), MathHelper.floor(this.posZ + 0.5D));
         if (dist == 2)
         {
             inFront.translate(headings2[this.facingAI.getIndex()]);
@@ -1222,11 +1246,11 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
             {
                 if (blockingBlock.block == Blocks.STONE)
                 {
-                    this.playerMP.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner1_a.fail") + " " + GCCoreUtil.translate("gui.message.astro_miner1_b.fail")));
+                    this.playerMP.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner1_a.fail") + " " + GCCoreUtil.translate("gui.message.astro_miner1_b.fail")));
                 }
                 else
                 {
-                    this.playerMP.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner1_a.fail") + " " + GCCoreUtil.translate(EntityAstroMiner.blockingBlock.toString())));
+                    this.playerMP.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.message.astro_miner1_a.fail") + " " + GCCoreUtil.translate(EntityAstroMiner.blockingBlock.toString())));
                 }
             }
             this.motionX = 0;
@@ -1265,7 +1289,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
 
     private boolean prepareMoveClient(int limit, int dist)
     {
-        BlockVec3 inFront = new BlockVec3(MathHelper.floor_double(this.posX + 0.5D), MathHelper.floor_double(this.posY + 1.5D), MathHelper.floor_double(this.posZ + 0.5D));
+        BlockVec3 inFront = new BlockVec3(MathHelper.floor(this.posX + 0.5D), MathHelper.floor(this.posY + 1.5D), MathHelper.floor(this.posZ + 0.5D));
         if (dist == 2)
         {
             inFront.translate(headings2[this.facing.getIndex()]);
@@ -1470,7 +1494,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     {
         //Check things to avoid in front of it (see static list for list) including base type things
         //Can move through liquids including flowing lava
-        IBlockState state = this.worldObj.getBlockState(pos);
+        IBlockState state = this.world.getBlockState(pos);
         Block b = state.getBlock();
         if (b.getMaterial(state) == Material.AIR)
         {
@@ -1507,7 +1531,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
                 return true;
             }
             int meta = b.getMetaFromState(state);
-            if (b.getBlockHardness(state, this.worldObj, pos) < 0)
+            if (b.getBlockHardness(state, this.world, pos) < 0)
             {
                 blockingBlock.block = b;
                 blockingBlock.meta = meta;
@@ -1532,7 +1556,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         {
             return false;
         }
-        int result = ForgeHooks.onBlockBreakEvent(this.worldObj, this.playerMP.interactionManager.getGameType(), this.playerMP, pos);
+        int result = ForgeHooks.onBlockBreakEvent(this.world, this.playerMP.interactionManager.getGameType(), this.playerMP, pos);
         if (result < 0)
         {
             blockingBlock.block = Blocks.STONE;
@@ -1545,27 +1569,27 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         //Collect the mined block - unless it's a plant or leaves in which case just break it
         if (!((b instanceof IPlantable && !(b instanceof BlockReed)) || b instanceof BlockLeaves))
         {
-            ItemStack drops = gtFlag ? getGTDrops(this.worldObj, pos, b) : getPickBlock(this.worldObj, pos, b);
-            if (drops != null && !this.addToInventory(drops))
+		    ItemStack drops = gtFlag ? getGTDrops(this.world, pos, b) : getPickBlock(this.world, pos, b);
+		    if (drops != null && !this.addToInventory(drops))
             {
                 //drop itemstack if AstroMiner can't hold it
                 dropStack(pos, drops);
             }
         }
 
-        this.worldObj.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
+        this.world.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
         return false;
     }
 
     private void dropStack(BlockPos pos, ItemStack drops)
     {
         float f = 0.7F;
-        double d0 = this.worldObj.rand.nextFloat() * f + (1.0F - f) * 0.5D;
-        double d1 = this.worldObj.rand.nextFloat() * f + (1.0F - f) * 0.5D;
-        double d2 = this.worldObj.rand.nextFloat() * f + (1.0F - f) * 0.5D;
-        EntityItem entityitem = new EntityItem(this.worldObj, pos.getX() + d0, pos.getY() + d1, pos.getZ() + d2, drops);
+        double d0 = this.world.rand.nextFloat() * f + (1.0F - f) * 0.5D;
+        double d1 = this.world.rand.nextFloat() * f + (1.0F - f) * 0.5D;
+        double d2 = this.world.rand.nextFloat() * f + (1.0F - f) * 0.5D;
+        EntityItem entityitem = new EntityItem(this.world, pos.getX() + d0, pos.getY() + d1, pos.getZ() + d2, drops);
         entityitem.setDefaultPickupDelay();
-        this.worldObj.spawnEntityInWorld(entityitem);
+        this.world.spawnEntity(entityitem);
         this.inventoryDrops++;
     }
 
@@ -1582,7 +1606,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         {
             return array.get(0);
         }
-        return null;
+        return ItemStack.EMPTY;
     }
 
     private boolean tryBlockClient(BlockPos pos)
@@ -1594,7 +1618,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         }
 
         //Add minable blocks to the laser fx list
-        IBlockState state = this.worldObj.getBlockState(pos);
+        IBlockState state = this.world.getBlockState(pos);
         Block b = state.getBlock();
         if (b.getMaterial(state) == Material.AIR)
         {
@@ -1616,7 +1640,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         {
             return true;
         }
-        if (b.hasTileEntity(state) || b.getBlockHardness(state, this.worldObj, pos) < 0)
+        if (b.hasTileEntity(state) || b.getBlockHardness(state, this.world, pos) < 0)
         {
             return true;
         }
@@ -1680,24 +1704,24 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
 
         if (itemstack.isStackable())
         {
-            while (itemstack.stackSize > 0 && k < invSize)
+            while (!itemstack.isEmpty() && k < invSize)
             {
-                itemstack1 = this.cargoItems[k];
+                itemstack1 = this.stacks.get(k);
 
                 if (RecipeUtil.stacksMatch(itemstack, itemstack1))
                 {
-                    int l = itemstack1.stackSize + itemstack.stackSize;
+                    int l = itemstack1.getCount() + itemstack.getCount();
 
                     if (l <= itemstack.getMaxStackSize())
                     {
-                        itemstack.stackSize = 0;
-                        itemstack1.stackSize = l;
+                        itemstack.setCount(0);
+                        itemstack1.setCount(l);
                         flag1 = true;
                     }
-                    else if (itemstack1.stackSize < itemstack.getMaxStackSize())
+                    else if (itemstack1.getCount() < itemstack.getMaxStackSize())
                     {
-                        itemstack.stackSize -= itemstack.getMaxStackSize() - itemstack1.stackSize;
-                        itemstack1.stackSize = itemstack.getMaxStackSize();
+                        itemstack.shrink(itemstack.getMaxStackSize() - itemstack1.getCount());
+                        itemstack1.setCount(itemstack.getMaxStackSize());
                         flag1 = true;
                     }
                 }
@@ -1706,18 +1730,18 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
             }
         }
 
-        if (itemstack.stackSize > 0)
+        if (!itemstack.isEmpty())
         {
             k = 0;
 
             while (k < invSize)
             {
-                itemstack1 = this.cargoItems[k];
+                itemstack1 = this.stacks.get(k);
 
-                if (itemstack1 == null)
+                if (itemstack1.isEmpty())
                 {
-                    this.cargoItems[k] = itemstack.copy();
-                    itemstack.stackSize = 0;
+                    this.stacks.set(k, itemstack.copy());
+                    itemstack.setCount(0);
                     flag1 = true;
                     break;
                 }
@@ -2017,7 +2041,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         {
             return true;
         }
-        final EntityAstroMiner miner = new EntityAstroMiner(world, new ItemStack[EntityAstroMiner.INV_SIZE], 0);
+        final EntityAstroMiner miner = new EntityAstroMiner(world, NonNullList.withSize(EntityAstroMiner.INV_SIZE, ItemStack.EMPTY), 0);
         miner.setPlayer(player);
         if (player.capabilities.isCreativeMode)
         {
@@ -2073,7 +2097,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
             return false;
         }
 
-        world.spawnEntityInWorld(miner);
+        world.spawnEntity(miner);
         miner.flagLink = true;
         return true;
     }
@@ -2115,21 +2139,21 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     @Override
     public boolean attackEntityFrom(DamageSource par1DamageSource, float par2)
     {
-        if (this.isDead || par1DamageSource.equals(DamageSource.cactus))
+        if (this.isDead || par1DamageSource.equals(DamageSource.CACTUS))
         {
             return true;
         }
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
-            Entity e = par1DamageSource.getEntity();
+            Entity e = par1DamageSource.getTrueSource();
 
             //If creative mode player, kill the entity (even if player owner is offline) and drop nothing
             if (e instanceof EntityPlayer && ((EntityPlayer) e).capabilities.isCreativeMode)
             {
                 if (this.playerMP == null && !this.spawnedInCreative)
                 {
-                    ((EntityPlayer) e).addChatMessage(new TextComponentString("WARNING: that Astro Miner belonged to an offline player, cannot reset player's Astro Miner count."));
+                    ((EntityPlayer) e).sendMessage(new TextComponentString("WARNING: that Astro Miner belonged to an offline player, cannot reset player's Astro Miner count."));
                 }
                 this.setDead();
                 return true;
@@ -2142,7 +2166,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
             }
             else
             {
-                this.setBeenAttacked();
+                this.markVelocityChanged();
 //                this.dataManager.set(this.timeSinceHit, Integer.valueOf(10));
 //                this.dataManager.set(this.currentDamage, Integer.valueOf((int) (this.dataManager.get(this.currentDamage) + par2 * 10)));
                 this.shipDamage += par2 * 10;
@@ -2172,7 +2196,13 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     @Override
     public AxisAlignedBB getCollisionBox(Entity par1Entity)
     {
-        return par1Entity.getCollisionBoundingBox();
+        return null;  //AstroMiners aren't stopped by any other entity
+    }
+
+    @Override
+    public AxisAlignedBB getCollisionBoundingBox()
+    {
+        return this.getEntityBoundingBox().shrink(0.1D);
     }
 
     @Override
@@ -2256,7 +2286,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     @Override
     public void setDead()
     {
-        if (!this.worldObj.isRemote && this.playerMP != null)
+        if (!this.world.isRemote && this.playerMP != null)
         {
             GCPlayerStats stats = GCPlayerStats.get(this.playerMP);
             if (!this.spawnedInCreative)
@@ -2273,7 +2303,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
         super.setDead();
         if (posBase != null)
         {
-            TileEntity tileEntity = posBase.getTileEntity(this.worldObj);
+            TileEntity tileEntity = posBase.getTileEntity(this.world);
             if (tileEntity instanceof TileEntityMinerBase)
             {
                 ((TileEntityMinerBase) tileEntity).unlinkMiner();
@@ -2296,20 +2326,20 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     {
         ItemStack rocket = new ItemStack(AsteroidsItems.astroMiner, 1, 0);
         droppedItems.add(rocket);
-        for (int i = 0; i < this.cargoItems.length; i++)
+        for (int i = 0; i < this.stacks.size(); i++)
         {
-            if (this.cargoItems[i] != null)
+            if (!this.stacks.get(i).isEmpty())
             {
-                droppedItems.add(this.cargoItems[i]);
+                droppedItems.add(this.stacks.get(i));
             }
-            this.cargoItems[i] = null;
+            this.stacks.set(i, ItemStack.EMPTY);
         }
         return droppedItems;
     }
 
     public void dropShipAsItem()
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             return;
         }
@@ -2320,7 +2350,7 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
 
             if (item.hasTagCompound())
             {
-                entityItem.getEntityItem().setTagCompound((NBTTagCompound) item.getTagCompound().copy());
+                entityItem.getItem().setTagCompound((NBTTagCompound) item.getTagCompound().copy());
             }
         }
     }
@@ -2403,27 +2433,12 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     @Override
     protected void readEntityFromNBT(NBTTagCompound nbt)
     {
-        final NBTTagList var2 = nbt.getTagList("Items", 10);
-        this.cargoItems = new ItemStack[this.INV_SIZE];
-
+        this.stacks = NonNullList.withSize(INV_SIZE, ItemStack.EMPTY);
+        ItemStackHelper.loadAllItems(nbt, this.stacks);
         int itemCount = 0;
-        if (var2 != null)
+        for (ItemStack stack : this.stacks)
         {
-            for (int var3 = 0; var3 < var2.tagCount(); ++var3)
-            {
-                final NBTTagCompound var4 = var2.getCompoundTagAt(var3);
-                final int var5 = var4.getByte("Slot") & 255;
-
-                if (var5 < this.cargoItems.length)
-                {
-                    ItemStack read = ItemStack.loadItemStackFromNBT(var4);
-                    if (read != null)
-                    {
-                        this.cargoItems[var5] = read;
-                        itemCount += read.stackSize;
-                    }
-                }
-            }
+        	itemCount += stack.getCount();
         }
         this.mineCount = itemCount;
 
@@ -2534,22 +2549,10 @@ public class EntityAstroMiner extends Entity implements IInventoryDefaults, IPac
     @Override
     protected void writeEntityToNBT(NBTTagCompound nbt)
     {
-        if (worldObj.isRemote) return;
+        if (world.isRemote) return;
         final NBTTagList var2 = new NBTTagList();
 
-        if (this.cargoItems != null)
-        {
-            for (int var3 = 0; var3 < this.cargoItems.length; ++var3)
-            {
-                if (this.cargoItems[var3] != null)
-                {
-                    final NBTTagCompound var4 = new NBTTagCompound();
-                    var4.setByte("Slot", (byte) var3);
-                    this.cargoItems[var3].writeToNBT(var4);
-                    var2.appendTag(var4);
-                }
-            }
-        }
+        ItemStackHelper.saveAllItems(nbt, this.stacks);
 
         nbt.setTag("Items", var2);
         nbt.setInteger("sindex", this.serverIndex);

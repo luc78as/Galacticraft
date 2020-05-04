@@ -2,7 +2,7 @@ package micdoodle8.mods.galacticraft.planets.asteroids.dimension;
 
 import micdoodle8.mods.galacticraft.core.Constants;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.WorldSavedData;
+import net.minecraft.world.storage.WorldSavedData;
 
 public class AsteroidSaveData extends WorldSavedData
 {

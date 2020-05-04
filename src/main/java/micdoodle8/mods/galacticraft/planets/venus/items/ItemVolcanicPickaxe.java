@@ -12,6 +12,7 @@ import net.minecraft.block.BlockCommandBlock;
 import net.minecraft.block.BlockStructure;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
@@ -34,6 +35,8 @@ import org.lwjgl.input.Keyboard;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 public class ItemVolcanicPickaxe extends ItemPickaxe implements ISortableItem, IShiftDescription
 {
     public ItemVolcanicPickaxe(String assetName)
@@ -44,13 +47,13 @@ public class ItemVolcanicPickaxe extends ItemPickaxe implements ISortableItem, I
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack stack, EntityPlayer player, List<String> info, boolean advanced)
+    public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> info, ITooltipFlag flagIn)
     {
         if (this.showDescription(stack.getItemDamage()))
         {
             if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))
             {
-                info.addAll(FMLClientHandler.instance().getClient().fontRendererObj.listFormattedStringToWidth(this.getShiftDescription(stack.getItemDamage()), 150));
+                info.addAll(FMLClientHandler.instance().getClient().fontRenderer.listFormattedStringToWidth(this.getShiftDescription(stack.getItemDamage()), 150));
             }
             else
             {
@@ -83,7 +86,7 @@ public class ItemVolcanicPickaxe extends ItemPickaxe implements ISortableItem, I
     {
         boolean ret = super.onBlockDestroyed(stack, worldIn, state, pos, entityLiving);
 
-        if (!(entityLiving instanceof EntityPlayer))
+        if (!(entityLiving instanceof EntityPlayer) || worldIn.isRemote)
         {
             return ret;
         }
@@ -105,7 +108,7 @@ public class ItemVolcanicPickaxe extends ItemPickaxe implements ISortableItem, I
         
         for (int i = -1; i <= 1; ++i)
         {
-            for (int j = -1; j <= 1 && stack.stackSize > 0; ++j)
+            for (int j = -1; j <= 1 && !stack.isEmpty(); ++j)
             {
                 if (i == 0 && j == 0)
                 {
@@ -128,7 +131,7 @@ public class ItemVolcanicPickaxe extends ItemPickaxe implements ISortableItem, I
 
                 //:Replicate logic of PlayerInteractionManager.tryHarvestBlock(pos1)
                 IBlockState state1 = worldIn.getBlockState(pos1);
-                float f = state1.getBlockHardness(worldIn, pos);
+                float f = state1.getBlockHardness(worldIn, pos1);
                 if (f >= 0F)
                 {
                     BlockEvent.BreakEvent event = new BlockEvent.BreakEvent(worldIn, pos1, state1, player);

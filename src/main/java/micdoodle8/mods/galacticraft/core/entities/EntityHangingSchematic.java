@@ -45,14 +45,14 @@ public class EntityHangingSchematic extends EntityHanging
         if (this.sendToClient)
         {
             this.sendToClient = false;
-            this.sendToClient(this.worldObj, this.hangingPosition);
+            this.sendToClient(this.world, this.hangingPosition);
         }
 
         if (this.tickCounter1++ == 10)
         {
             this.tickCounter1 = 0;
 
-            if (!this.worldObj.isRemote && !this.isDead && !this.onValidSurface())
+            if (!this.world.isRemote && !this.isDead && !this.onValidSurface())
             {
                 this.setDead();
                 this.onBroken((Entity)null);
@@ -96,7 +96,7 @@ public class EntityHangingSchematic extends EntityHanging
     @Override
     public void onBroken(Entity brokenEntity)
     {
-        if (this.worldObj.getGameRules().getBoolean("doEntityDrops"))
+        if (this.world.getGameRules().getBoolean("doEntityDrops"))
         {
             if (brokenEntity instanceof EntityPlayer)
             {

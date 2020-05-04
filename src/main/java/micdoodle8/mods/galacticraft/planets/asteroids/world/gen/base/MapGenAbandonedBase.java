@@ -1,5 +1,6 @@
 package micdoodle8.mods.galacticraft.planets.asteroids.world.gen.base;
 
+import net.minecraft.util.math.BlockPos;
 import java.util.List;
 import java.util.Random;
 
@@ -54,6 +55,11 @@ public class MapGenAbandonedBase extends MapGenStructure
         MapGenAbandonedBase.initialized = true;
     }
 
+    @Override
+    public BlockPos getNearestStructurePos(World worldIn, BlockPos pos, boolean p_180706_3_)
+    {
+        return null;
+    }
 
     @Override
     public String getStructureName()
@@ -64,7 +70,7 @@ public class MapGenAbandonedBase extends MapGenStructure
     @Override
     protected boolean canSpawnStructureAtCoords(int chunkX, int chunkZ)
     {
-        long dungeonPos = MapGenDungeon.getDungeonPosForCoords(this.worldObj, chunkX, chunkZ, ((IGalacticraftWorldProvider) this.worldObj.provider).getDungeonSpacing());
+        long dungeonPos = MapGenDungeon.getDungeonPosForCoords(this.world, chunkX, chunkZ, ((IGalacticraftWorldProvider) this.world.provider).getDungeonSpacing());
         int i = (int) (dungeonPos >> 32);
         int j = (int) dungeonPos;
         return i == chunkX && j == chunkZ;
@@ -74,7 +80,7 @@ public class MapGenAbandonedBase extends MapGenStructure
     public void generate(World worldIn, int x, int z, ChunkPrimer chunkPrimerIn)
     {
         int i = this.range;
-        this.worldObj = worldIn;
+        this.world = worldIn;
         this.rand.setSeed(worldIn.getSeed());
         long j = this.rand.nextLong();
         long k = this.rand.nextLong();
@@ -99,12 +105,12 @@ public class MapGenAbandonedBase extends MapGenStructure
     @Override
     protected StructureStart getStructureStart(int chunkX, int chunkZ)
     {
-        BlockVec3 asteroid = ((WorldProviderAsteroids) this.worldObj.provider).getClosestAsteroidXZ((chunkX << 4) + 8, 0, (chunkZ << 4) + 8, false);
+        BlockVec3 asteroid = ((WorldProviderAsteroids) this.world.provider).getClosestAsteroidXZ((chunkX << 4) + 8, 0, (chunkZ << 4) + 8, false);
         if (asteroid == null)
         {
-            return new MapGenAbandonedBase.Start(this.worldObj, this.rand, (chunkX << 4) + 8, (chunkZ << 4) + 8, 15, new BaseConfiguration(148, this.rand));
+            return new MapGenAbandonedBase.Start(this.world, this.rand, (chunkX << 4) + 8, (chunkZ << 4) + 8, 15, new BaseConfiguration(148, this.rand));
         }
-        return new MapGenAbandonedBase.Start(this.worldObj, this.rand, asteroid.x, asteroid.z, asteroid.sideDoneBits - 5, new BaseConfiguration(asteroid.y - 10, this.rand));
+        return new MapGenAbandonedBase.Start(this.world, this.rand, asteroid.x, asteroid.z, asteroid.sideDoneBits - 5, new BaseConfiguration(asteroid.y - 10, this.rand));
     }
 
     public static class Start extends StructureStart
@@ -120,7 +126,7 @@ public class MapGenAbandonedBase extends MapGenStructure
             super(posX >> 4, posZ >> 4);
             this.configuration = configuration;
             if (size < 1) size = 1;
-            size = size * (int) MathHelper.sqrt_float(size) / 4;
+            size = size * (int) MathHelper.sqrt(size) / 4;
             if (configuration.isHangarDeck()) size -= 6;
             int xoffset = 0;
             int zoffset = 0;

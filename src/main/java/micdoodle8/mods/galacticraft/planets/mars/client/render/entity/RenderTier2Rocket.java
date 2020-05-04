@@ -61,7 +61,7 @@ public class RenderTier2Rocket extends Render<EntityTier2Rocket>
 
         if (rollAmplitude > 0.0F)
         {
-            float i = entity.getLaunched() ? (5 - MathHelper.floor_double(entity.timeUntilLaunch / 85)) / 10F : 0.3F;
+            final float i = entity.getLaunched() ? (5 - MathHelper.floor(entity.timeUntilLaunch / 85)) / 10F : 0.3F;
             GlStateManager.rotate(MathHelper.sin(rollAmplitude) * rollAmplitude * i * partialTicks, 1.0F, 0.0F, 0.0F);
             GlStateManager.rotate(MathHelper.sin(rollAmplitude) * rollAmplitude * i * partialTicks, 1.0F, 0.0F, 1.0F);
         }
@@ -88,7 +88,7 @@ public class RenderTier2Rocket extends Render<EntityTier2Rocket>
     @Override
     public boolean shouldRender(EntityTier2Rocket rocket, ICamera camera, double camX, double camY, double camZ)
     {
-        AxisAlignedBB axisalignedbb = rocket.getEntityBoundingBox().expand(0.6D, 1D, 0.6D);
+        AxisAlignedBB axisalignedbb = rocket.getEntityBoundingBox().grow(0.6D, 1D, 0.6D);
         return rocket.isInRangeToRender3d(camX, camY, camZ) && camera.isBoundingBoxInFrustum(axisalignedbb);
     }
 }

@@ -54,7 +54,7 @@ public class SpaceRaceManager
             {
                 if (race.getPlayerNames().contains(PlayerUtil.getName(player)))
                 {
-                    CelestialBody body = GalaxyRegistry.getCelestialBodyFromDimensionID(player.worldObj.provider.getDimension());
+                    CelestialBody body = GalaxyRegistry.getCelestialBodyFromDimensionID(player.world.provider.getDimension());
 
                     if (body != null)
                     {
@@ -142,12 +142,12 @@ public class SpaceRaceManager
 
             if (toPlayer != null)
             {
-                GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_UPDATE_SPACE_RACE_DATA, GCCoreUtil.getDimensionID(toPlayer.worldObj), objList), toPlayer);
+                GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_UPDATE_SPACE_RACE_DATA, GCCoreUtil.getDimensionID(toPlayer.world), objList), toPlayer);
                 spaceRace.updatePlayerSchematics(toPlayer);
             }
             else
             {
-                for (WorldServer server : theServer.worldServers)
+                for (WorldServer server : theServer.worlds)
                 {
                     GalacticraftCore.packetPipeline.sendToDimension(new PacketSimple(EnumSimplePacket.C_UPDATE_SPACE_RACE_DATA, GCCoreUtil.getDimensionID(server), objList), GCCoreUtil.getDimensionID(server));
                 }
@@ -168,7 +168,7 @@ public class SpaceRaceManager
 
             if (memberObj != null)
             {
-                memberObj.addChatMessage(new TextComponentString(EnumColor.DARK_AQUA + GCCoreUtil.translateWithFormat("gui.space_race.chat.remove_success", EnumColor.RED + player + EnumColor.DARK_AQUA)).setStyle(new Style().setColor(TextFormatting.DARK_AQUA)));
+                memberObj.sendMessage(new TextComponentString(EnumColor.DARK_AQUA + GCCoreUtil.translateWithFormat("gui.space_race.chat.remove_success", EnumColor.RED + player + EnumColor.DARK_AQUA)).setStyle(new Style().setColor(TextFormatting.DARK_AQUA)));
             }
         }
 

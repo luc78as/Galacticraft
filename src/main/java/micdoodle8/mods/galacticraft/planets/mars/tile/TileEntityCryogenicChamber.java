@@ -47,7 +47,7 @@ public class TileEntityCryogenicChamber extends TileEntityMulti implements IMult
     @Override
     public boolean onActivated(EntityPlayer entityPlayer)
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             return false;
         }
@@ -58,11 +58,11 @@ public class TileEntityCryogenicChamber extends TileEntityMulti implements IMult
         {
         case OK:
             ((EntityPlayerMP) entityPlayer).connection.setPlayerLocation(entityPlayer.posX, entityPlayer.posY, entityPlayer.posZ, entityPlayer.rotationYaw, entityPlayer.rotationPitch);
-            GalacticraftCore.packetPipeline.sendTo(new PacketSimpleMars(EnumSimplePacketMars.C_BEGIN_CRYOGENIC_SLEEP, GCCoreUtil.getDimensionID(entityPlayer.worldObj), new Object[] { this.getPos() }), (EntityPlayerMP) entityPlayer);
+            GalacticraftCore.packetPipeline.sendTo(new PacketSimpleMars(EnumSimplePacketMars.C_BEGIN_CRYOGENIC_SLEEP, GCCoreUtil.getDimensionID(entityPlayer.world), new Object[] { this.getPos() }), (EntityPlayerMP) entityPlayer);
             return true;
         case NOT_POSSIBLE_NOW:
             GCPlayerStats stats = GCPlayerStats.get(entityPlayer);
-            entityPlayer.addChatMessage(new TextComponentString(GCCoreUtil.translateWithFormat("gui.cryogenic.chat.cant_use", stats.getCryogenicChamberCooldown() / 20)));
+            entityPlayer.sendMessage(new TextComponentString(GCCoreUtil.translateWithFormat("gui.cryogenic.chat.cant_use", stats.getCryogenicChamberCooldown() / 20)));
             return false;
         default:
             return false;
@@ -71,14 +71,14 @@ public class TileEntityCryogenicChamber extends TileEntityMulti implements IMult
 
     public EntityPlayer.SleepResult sleepInBedAt(EntityPlayer entityPlayer, int par1, int par2, int par3)
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             if (entityPlayer.isPlayerSleeping() || !entityPlayer.isEntityAlive())
             {
                 return EntityPlayer.SleepResult.OTHER_PROBLEM;
             }
 
-            if (this.worldObj.getBiome(new BlockPos(par1, par2, par3)) == Biomes.HELL)
+            if (this.world.getBiome(new BlockPos(par1, par2, par3)) == Biomes.HELL)
             {
                 return EntityPlayer.SleepResult.NOT_POSSIBLE_HERE;
             }
@@ -102,9 +102,9 @@ public class TileEntityCryogenicChamber extends TileEntityMulti implements IMult
         entityPlayer.bedLocation = new BlockPos(this.getPos().getX(), this.getPos().getY(), this.getPos().getZ());
         entityPlayer.motionX = entityPlayer.motionZ = entityPlayer.motionY = 0.0D;
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
-            this.worldObj.updateAllPlayersSleepingFlag();
+            this.world.updateAllPlayersSleepingFlag();
         }
 
         return EntityPlayer.SleepResult.OK;
@@ -121,7 +121,7 @@ public class TileEntityCryogenicChamber extends TileEntityMulti implements IMult
     {
         if (!this.initialised)
         {
-            this.initialised = this.initialiseMultiTiles(this.getPos(), this.worldObj);
+            this.initialised = this.initialiseMultiTiles(this.getPos(), this.world);
         }
     }
 
@@ -145,7 +145,7 @@ public class TileEntityCryogenicChamber extends TileEntityMulti implements IMult
     @Override
     public void getPositions(BlockPos placedPosition, List<BlockPos> positions)
     {
-        int buildHeight = this.worldObj.getHeight() - 1;
+        int buildHeight = this.world.getHeight() - 1;
 
         for (int y = 1; y < 3; y++)
         {
@@ -166,18 +166,18 @@ public class TileEntityCryogenicChamber extends TileEntityMulti implements IMult
 
         for (BlockPos pos : positions)
         {
-            IBlockState stateAt = this.worldObj.getBlockState(pos);
+            IBlockState stateAt = this.world.getBlockState(pos);
 
             if (stateAt.getBlock() == GCBlocks.fakeBlock && (EnumBlockMultiType) stateAt.getValue(BlockMulti.MULTI_TYPE) == EnumBlockMultiType.CRYO_CHAMBER)
             {
-                if (this.worldObj.isRemote && this.worldObj.rand.nextDouble() < 0.1D)
+                if (this.world.isRemote && this.world.rand.nextDouble() < 0.1D)
                 {
-                    FMLClientHandler.instance().getClient().effectRenderer.addBlockDestroyEffects(pos, this.worldObj.getBlockState(pos));
+                    FMLClientHandler.instance().getClient().effectRenderer.addBlockDestroyEffects(pos, this.world.getBlockState(pos));
                 }
-                this.worldObj.destroyBlock(pos, false);
+                this.world.destroyBlock(pos, false);
             }
         }
-        this.worldObj.destroyBlock(thisBlock, true);
+        this.world.destroyBlock(thisBlock, true);
     }
 
     @Override

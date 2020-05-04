@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import micdoodle8.mods.galacticraft.api.galaxies.CelestialBody;
+import micdoodle8.mods.galacticraft.api.prefab.world.gen.BiomeAdaptive;
 import micdoodle8.mods.galacticraft.api.prefab.world.gen.WorldProviderSpace;
 import micdoodle8.mods.galacticraft.api.vector.Vector3;
 import micdoodle8.mods.galacticraft.api.world.IGalacticraftWorldProvider;
@@ -30,7 +31,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.DimensionType;
 import net.minecraft.world.biome.BiomeProvider;
-import net.minecraft.world.chunk.IChunkGenerator;
+import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -98,6 +99,7 @@ public class WorldProviderVenus extends WorldProviderSpace implements IGalacticr
     @Override
     public Class<? extends BiomeProvider> getBiomeProviderClass()
     {
+        BiomeAdaptive.setBodyMultiBiome(VenusModule.planetVenus);
         return BiomeProviderVenus.class;
     }
 
@@ -105,7 +107,7 @@ public class WorldProviderVenus extends WorldProviderSpace implements IGalacticr
     @SideOnly(Side.CLIENT)
     public float getStarBrightness(float par1)
     {
-        float f1 = this.worldObj.getCelestialAngle(par1);
+        float f1 = this.world.getCelestialAngle(par1);
         float f2 = 1.0F - (MathHelper.cos(f1 * Constants.twoPI) * 2.0F + 0.25F);
 
         if (f2 < 0.0F)
@@ -245,29 +247,29 @@ public class WorldProviderVenus extends WorldProviderSpace implements IGalacticr
     @Override
     protected void updateWeatherOverride()
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             if (--this.rainTime <= 0)
             {
                 this.raining = !this.raining;
                 if (this.raining)
                 {
-                    this.rainTime = (this.worldObj.rand.nextInt(3600) + 1000);
+                    this.rainTime = (this.world.rand.nextInt(3600) + 1000);
                 }
                 else
                 {
-                    this.rainTime = (this.worldObj.rand.nextInt(2000) + 1000);
+                    this.rainTime = (this.world.rand.nextInt(2000) + 1000);
                 }
             }
 
             if (--this.rainChange <= 0)
             {
-                this.targetRain = 0.15F + this.worldObj.rand.nextFloat() * 0.45F;
-                this.rainChange = (this.worldObj.rand.nextInt(200) + 100);
+                this.targetRain = 0.15F + this.world.rand.nextFloat() * 0.45F;
+                this.rainChange = (this.world.rand.nextInt(200) + 100);
             }
 
-            float strength = this.worldObj.rainingStrength;
-            this.worldObj.prevRainingStrength = strength;
+            float strength = this.world.rainingStrength;
+            this.world.prevRainingStrength = strength;
             if (this.raining && strength < this.targetRain)
             {
                 strength += 0.004F;
@@ -276,7 +278,7 @@ public class WorldProviderVenus extends WorldProviderSpace implements IGalacticr
             {
                 strength -= 0.004F;
             }
-            this.worldObj.rainingStrength = MathHelper.clamp_float(strength, 0.0F, 0.6F);
+            this.world.rainingStrength = MathHelper.clamp(strength, 0.0F, 0.6F);
         }
     }
 
@@ -285,17 +287,18 @@ public class WorldProviderVenus extends WorldProviderSpace implements IGalacticr
     {
         if ((int)yy >= blockpos.getY() + 1 && world.getPrecipitationHeight(blockpos).getY() > blockpos.getY())
         {
-            mc.theWorld.playSound(xx, yy, zz, SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.WEATHER, 0.025F, 0.6F + random.nextFloat() * 0.2F, false);
+            mc.world.playSound(xx, yy, zz, SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.WEATHER, 0.025F, 0.6F + random.nextFloat() * 0.2F, false);
         }
         else
         {
-            mc.theWorld.playSound(xx, yy, zz, SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.WEATHER, 0.04F, 0.8F + random.nextFloat() * 0.06F + random.nextFloat() * 0.06F, false);
+            mc.world.playSound(xx, yy, zz, SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.WEATHER, 0.04F, 0.8F + random.nextFloat() * 0.06F + random.nextFloat() * 0.06F, false);
         }
     }
 
     @Override
     public int getSoundInterval(float rainStrength)
     {
-        return 80 - (int)(rainStrength * 88F);
+        int result = 80 - (int)(rainStrength * 88F);
+        return result > 0 ? result : 0;
     }
 }

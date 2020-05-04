@@ -88,10 +88,11 @@ public class TeleportTypeVenus implements ITeleportType
                 if (!newWorld.isRemote)
                 {
                     EntityEntryPodVenus entryPod = new EntityEntryPodVenus(player);
-                    CompatibilityManager.forceLoadChunks((WorldServer) newWorld);
+
+                    boolean previous = CompatibilityManager.forceLoadChunks((WorldServer) newWorld);
                     entryPod.forceSpawn = true;
-                    newWorld.spawnEntityInWorld(entryPod);
-                    CompatibilityManager.forceLoadChunksEnd((WorldServer) newWorld);
+                    newWorld.spawnEntity(entryPod);
+                    CompatibilityManager.forceLoadChunksEnd((WorldServer) newWorld, previous);
                 }
 
                 stats.setTeleportCooldown(10);

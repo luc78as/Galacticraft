@@ -3,7 +3,7 @@ package micdoodle8.mods.galacticraft.core.dimension;
 import micdoodle8.mods.galacticraft.core.Constants;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldSavedData;
+import net.minecraft.world.storage.WorldSavedData;
 
 public class WorldDataSpaceRaces extends WorldSavedData
 {
@@ -29,12 +29,12 @@ public class WorldDataSpaceRaces extends WorldSavedData
 
     public static WorldDataSpaceRaces initWorldData(World world)
     {
-        WorldDataSpaceRaces worldData = (WorldDataSpaceRaces) world.loadItemData(WorldDataSpaceRaces.class, WorldDataSpaceRaces.saveDataID);
+        WorldDataSpaceRaces worldData = (WorldDataSpaceRaces) world.loadData(WorldDataSpaceRaces.class, WorldDataSpaceRaces.saveDataID);
 
         if (worldData == null)
         {
             worldData = new WorldDataSpaceRaces(WorldDataSpaceRaces.saveDataID);
-            world.setItemData(WorldDataSpaceRaces.saveDataID, worldData);
+            world.setData(WorldDataSpaceRaces.saveDataID, worldData);
             worldData.dataCompound = new NBTTagCompound();
             worldData.markDirty();
         }

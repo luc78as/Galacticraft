@@ -15,8 +15,10 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.MoverType;
 import net.minecraft.init.MobEffects;
 import net.minecraft.init.SoundEvents;
+import net.minecraft.stats.RecipeBook;
 import net.minecraft.stats.StatisticsManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -28,8 +30,10 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.apache.logging.log4j.core.config.plugins.convert.TypeConverters;
 
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public class GCEntityClientPlayerMP extends EntityPlayerSP
 {
@@ -39,9 +43,9 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
     private boolean checkedCape = false;
     private ResourceLocation galacticraftCape = null;
 
-    public GCEntityClientPlayerMP(Minecraft mcIn, World worldIn, NetHandlerPlayClient netHandler, StatisticsManager statFileWriter)
+    public GCEntityClientPlayerMP(Minecraft mcIn, World worldIn, NetHandlerPlayClient netHandler, StatisticsManager statFileWriter, RecipeBook book)
     {
-        super(mcIn, worldIn, netHandler, statFileWriter);
+        super(mcIn, worldIn, netHandler, statFileWriter, book);
     }
 
     @Override
@@ -71,7 +75,7 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
     {
         ClientProxyCore.playerClientHandler.onLivingUpdatePre(this);
         try {
-            if (this.worldObj.provider instanceof IZeroGDimension)
+            if (this.world.provider instanceof IZeroGDimension)
             {
                 //  from: EntityPlayerSP
                 if (this.sprintingTicksLeft > 0)
@@ -183,7 +187,7 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
                     this.setSprinting(true);
                 }
 
-                if (this.isSprinting() && (this.movementInput.moveForward < sprintlevel || this.isCollidedHorizontally || !flag4))
+                if (this.isSprinting() && (this.movementInput.moveForward < sprintlevel || this.collidedHorizontally || !flag4))
                 {
                     this.setSprinting(false);
                 }
@@ -209,7 +213,7 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
 
                 //Omit fly toggle timer
                 
-                if (this.worldObj.getDifficulty() == EnumDifficulty.PEACEFUL && this.worldObj.getGameRules().getBoolean("naturalRegeneration"))
+                if (this.world.getDifficulty() == EnumDifficulty.PEACEFUL && this.world.getGameRules().getBoolean("naturalRegeneration"))
                 {
                     if (this.getHealth() < this.getMaxHealth() && this.ticksExisted % 20 == 0)
                     {
@@ -260,7 +264,7 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
                     this.motionZ = 0.0D;
                 }
 
-                this.worldObj.theProfiler.startSection("ai");
+                this.world.profiler.startSection("ai");
 
                 if (this.isMovementBlocked())
                 {
@@ -272,8 +276,8 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
                 else
                     this.updateEntityActionState();
                 
-                this.worldObj.theProfiler.endSection();
-                this.worldObj.theProfiler.startSection("travel");
+                this.world.profiler.endSection();
+                this.world.profiler.startSection("travel");
                 this.moveStrafing *= 0.98F;
                 this.moveForward *= 0.98F;
                 this.randomYawVelocity *= 0.9F;
@@ -283,16 +287,17 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
                 if ((aABB.minY % 1D) == 0.5D) this.setEntityBoundingBox(aABB.offset(0D, 0.00001D, 0D));
                 //-----------END CUSTOM
                 
-                this.moveEntityWithHeading(this.moveStrafing, this.moveForward);
-                this.worldObj.theProfiler.endSection();
-                this.worldObj.theProfiler.startSection("push");
+                //NOTE: No Elytra movement from this.updateElytra() in a zero G dimension
+                this.travel(this.moveStrafing, this.moveVertical, this.moveForward);
+                this.world.profiler.endSection();
+                this.world.profiler.startSection("push");
 
-                if (!this.worldObj.isRemote)
+                if (!this.world.isRemote)
                 {
                     this.collideWithNearbyEntities();
                 }
 
-                this.worldObj.theProfiler.endSection();
+                this.world.profiler.endSection();
 
                 // -from: EntityPlayer
                 
@@ -301,7 +306,7 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
                 //Omit        this.jumpMovementFactor = this.speedInAir;
                 //(no bounding in space)
                 
-                float f = MathHelper.sqrt_double(this.motionX * this.motionX + this.motionZ * this.motionZ);
+                float f = MathHelper.sqrt(this.motionX * this.motionX + this.motionZ * this.motionZ);
                 float f1 = (float)(Math.atan(-this.motionY * 0.20000000298023224D) * 15.0D);
 
                 if (f > 0.1F)
@@ -328,14 +333,14 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
 
                     if (this.getRidingEntity() != null && !this.getRidingEntity().isDead)
                     {
-                        axisalignedbb = this.getEntityBoundingBox().union(this.getRidingEntity().getEntityBoundingBox()).expand(1.0D, 0.0D, 1.0D);
+                        axisalignedbb = this.getEntityBoundingBox().union(this.getRidingEntity().getEntityBoundingBox()).grow(1.0D, 0.0D, 1.0D);
                     }
                     else
                     {
-                        axisalignedbb = this.getEntityBoundingBox().expand(1.0D, 0.5D, 1.0D);
+                        axisalignedbb = this.getEntityBoundingBox().grow(1.0D, 0.5D, 1.0D);
                     }
 
-                    List<Entity> list = this.worldObj.getEntitiesWithinAABBExcludingEntity(this, axisalignedbb);
+                    List<Entity> list = this.world.getEntitiesWithinAABBExcludingEntity(this, axisalignedbb);
 
                     for (int i = 0; i < list.size(); ++i)
                     {
@@ -370,10 +375,10 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
     }
 
     @Override
-    public void moveEntity(double par1, double par3, double par5)
+    public void move(MoverType type, double x, double y, double z)
     {
-        super.moveEntity(par1, par3, par5);
-        ClientProxyCore.playerClientHandler.moveEntity(this, par1, par3, par5);
+        super.move(type, x, y, z);
+        ClientProxyCore.playerClientHandler.move(this, type, x, y, z);
     }
 
     @Override
@@ -386,7 +391,7 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
     @Override
     public boolean isSneaking()
     {
-        if (this.worldObj.provider instanceof IZeroGDimension)
+        if (this.world.provider instanceof IZeroGDimension)
         {
             ZeroGravityEvent zeroGEvent = new ZeroGravityEvent.SneakOverride(this);
             MinecraftForge.EVENT_BUS.post(zeroGEvent);
@@ -415,7 +420,6 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
             {
                 if (this.movementInput != null && this.movementInput.sneak != this.sneakLast)
                 { 
-                    this.sneakLast = this.movementInput.sneak;
                     return false;
                 }
                 //                if (stats.freefallHandler.testFreefall(this)) return false;
@@ -425,10 +429,12 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
                     return false;
                 }
             }
+            this.sneakLast = this.movementInput == null ? false : this.movementInput.sneak;
         }
-        else if (EventHandlerClient.sneakRenderOverride)
+        else
         {
-            if (this.onGround && this.inventory.getCurrentItem() != null && this.inventory.getCurrentItem().getItem() instanceof IHoldableItem && !(this.getRidingEntity() instanceof ICameraZoomEntity))
+            this.sneakLast = false;
+            if (EventHandlerClient.sneakRenderOverride && this.onGround && this.inventory.getCurrentItem() != null && this.inventory.getCurrentItem().getItem() instanceof IHoldableItem && !(this.getRidingEntity() instanceof ICameraZoomEntity))
             {
                 IHoldableItem holdableItem = (IHoldableItem) this.inventory.getCurrentItem().getItem();
 
@@ -438,7 +444,6 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
                 }
             }
         }
-        this.sneakLast = false;
         return super.isSneaking();
     }
     
@@ -453,7 +458,7 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
         }
 
         float ySize = 0.0F;
-        if (this.worldObj.provider instanceof IZeroGDimension)
+        if (this.world.provider instanceof IZeroGDimension)
         {
             GCPlayerStatsClient stats = GCPlayerStatsClient.get(this);
             if (stats.getLandingTicks() > 0)
@@ -492,9 +497,9 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
 //    @SideOnly(Side.CLIENT)
 //    public void setVelocity(double xx, double yy, double zz)
 //    {
-//    	if (this.worldObj.provider instanceof WorldProviderOrbit)
+//    	if (this.world.provider instanceof WorldProviderOrbit)
 //    	{
-//    		((WorldProviderOrbit)this.worldObj.provider).setVelocityClient(this, xx, yy, zz);	
+//    		((WorldProviderOrbit)this.world.provider).setVelocityClient(this, xx, yy, zz);
 //    	}
 //    	super.setVelocity(xx, yy, zz);
 //    }
@@ -503,7 +508,7 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
     /*@Override
     public void setInPortal()
     {
-    	if (!(this.worldObj.provider instanceof IGalacticraftWorldProvider))
+    	if (!(this.world.provider instanceof IGalacticraftWorldProvider))
     	{
     		super.setInPortal();
     	}
@@ -523,7 +528,7 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
         if (!this.checkedCape)
         {
             NetworkPlayerInfo networkplayerinfo = this.getPlayerInfo();
-            this.galacticraftCape = ClientProxyCore.capeMap.get(networkplayerinfo.getGameProfile().getName());
+            this.galacticraftCape = ClientProxyCore.capeMap.get(networkplayerinfo.getGameProfile().getId().toString().replace("-", ""));
             this.checkedCape = true;
         }
 
@@ -537,11 +542,11 @@ public class GCEntityClientPlayerMP extends EntityPlayerSP
     
     @Override
     @SideOnly(Side.CLIENT)
-    public int getBrightnessForRender(float partialTicks)
+    public int getBrightnessForRender()
     {
         double height = this.posY + (double)this.getEyeHeight();
         if (height > 255D) height = 255D;
         BlockPos blockpos = new BlockPos(this.posX, height, this.posZ);
-        return this.worldObj.isBlockLoaded(blockpos) ? this.worldObj.getCombinedLight(blockpos, 0) : 0;
+        return this.world.isBlockLoaded(blockpos) ? this.world.getCombinedLight(blockpos, 0) : 0;
     }
 }

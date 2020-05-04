@@ -12,6 +12,7 @@ import micdoodle8.mods.galacticraft.api.vector.Vector3;
 import micdoodle8.mods.galacticraft.api.world.IExitHeight;
 import micdoodle8.mods.galacticraft.api.world.IGalacticraftWorldProvider;
 import micdoodle8.mods.galacticraft.core.GalacticraftCore;
+import micdoodle8.mods.galacticraft.core.advancement.GCTriggers;
 import micdoodle8.mods.galacticraft.core.entities.player.GCPlayerStats;
 import micdoodle8.mods.galacticraft.core.network.PacketSimple;
 import micdoodle8.mods.galacticraft.core.network.PacketSimple.EnumSimplePacket;
@@ -21,7 +22,6 @@ import micdoodle8.mods.galacticraft.core.util.WorldUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumHand;
@@ -30,7 +30,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.WorldServer;
 
-import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -72,7 +71,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
 
     public void igniteCheckingCooldown()
     {
-        if (!this.worldObj.isRemote && this.launchCooldown <= 0)
+        if (!this.world.isRemote && this.launchCooldown <= 0)
         {
             this.initiatePlanetsPreGen(this.chunkCoordX, this.chunkCoordZ);
 
@@ -154,7 +153,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
                 Entity passenger = this.getPassengers().get(0);
                 if (this.ticks >= 40)
                 {
-                    if (!this.worldObj.isRemote)
+                    if (!this.world.isRemote)
                     {
                         this.removePassengers();
                         passenger.startRiding(this, true);
@@ -178,7 +177,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
 
         super.onUpdate();
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             if (this.launchCooldown > 0)
             {
@@ -190,11 +189,11 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
                 if (this.preGenIterator.hasNext())
                 {
                     MinecraftServer mcserver;
-                    if (this.worldObj instanceof WorldServer)
+                    if (this.world instanceof WorldServer)
                     {
-                        mcserver = ((WorldServer) this.worldObj).getMinecraftServer();
+                        mcserver = ((WorldServer) this.world).getMinecraftServer();
 	                	BlockVec3 coords = this.preGenIterator.next();
-	                    World w = mcserver.worldServerForDimension(coords.y);
+	                    World w = mcserver.getWorld(coords.y);
                         if (w != null)
                         {
                             w.getChunkFromChunkCoords(coords.x, coords.z);
@@ -202,7 +201,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
                             if (this.launchPhase < EnumLaunchPhase.LAUNCHED.ordinal() && this.preGenIterator.hasNext())
                             {
                                 coords = this.preGenIterator.next();
-                                w = mcserver.worldServerForDimension(coords.y);
+                                w = mcserver.getWorld(coords.y);
                                 w.getChunkFromChunkCoords(coords.x, coords.z);
                             }
                         }
@@ -239,7 +238,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
             this.rumble = (float) this.rand.nextInt(3) - 3;
         }
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             this.lastLastMotionY = this.lastMotionY;
             this.lastMotionY = this.motionY;
@@ -263,7 +262,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
     @Override
     public void getNetworkedData(ArrayList<Object> list)
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             return;
         }
@@ -287,7 +286,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
         //Launch controlled
         if (this.destinationFrequency != -1)
         {
-            if (this.worldObj.isRemote)
+            if (this.world.isRemote)
             {
             	//stop the sounds on the client - but do not reset, the rocket may start again
             	this.stopRocketSound();
@@ -298,10 +297,10 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
 
             if (this.targetVec != null)
             {
-                if (this.targetDimension != this.worldObj.provider.getDimension())
+                if (this.targetDimension != this.world.provider.getDimension())
                 {
                     WorldProvider targetDim = WorldUtil.getProviderForDimensionServer(this.targetDimension);               
-                    if (targetDim != null && targetDim.worldObj instanceof WorldServer)
+                    if (targetDim != null && targetDim.world instanceof WorldServer)
                     {
                     	boolean dimensionAllowed = this.targetDimension == ConfigManagerCore.idDimensionOverworld;
 
@@ -332,13 +331,13 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
                     		    {
                     		        if (passenger instanceof EntityPlayerMP)
                     		        {
-                    		            WorldUtil.transferEntityToDimension(passenger, this.targetDimension, (WorldServer) targetDim.worldObj, false, this);
+                    		            WorldUtil.transferEntityToDimension(passenger, this.targetDimension, (WorldServer) targetDim.world, false, this);
                     		        }
                     		    }
                     		}
                     		else
                     		{
-                    		    Entity e = WorldUtil.transferEntityToDimension(this, this.targetDimension, (WorldServer)targetDim.worldObj, false, null);
+                    		    Entity e = WorldUtil.transferEntityToDimension(this, this.targetDimension, (WorldServer)targetDim.world, false, null);
                     		    if (e instanceof EntityAutoRocket)
                     		    {
                     		        e.setPosition(this.targetVec.getX() + 0.5F, this.targetVec.getY() + 800, this.targetVec.getZ() + 0.5f);
@@ -369,7 +368,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
                     {
                         if (passenger instanceof EntityPlayerMP)
                         {
-                            WorldUtil.forceMoveEntityToPos(passenger, (WorldServer) this.worldObj, new Vector3(this.targetVec.getX() + 0.5F, this.targetVec.getY() + 800, this.targetVec.getZ() + 0.5F), false);
+                            WorldUtil.forceMoveEntityToPos(passenger, (WorldServer) this.world, new Vector3(this.targetVec.getX() + 0.5F, this.targetVec.getY() + 800, this.targetVec.getZ() + 0.5F), false);
                             this.setWaitForPlayer(true);
                             GCLog.debug("Rocket repositioned, waiting for player");
                         }
@@ -384,13 +383,13 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
                 //Launch controlled launch but no valid target frequency = rocket loss [INVESTIGATE]
             	GCLog.info("Error: the launch controlled rocket failed to find a valid landing spot when it reached space.");
             	this.fuelTank.drain(Integer.MAX_VALUE, true);
-            	this.posY = Math.max(255, (this.worldObj.provider instanceof IExitHeight ? ((IExitHeight) this.worldObj.provider).getYCoordinateToTeleport() : 1200) - 200);
+            	this.posY = Math.max(255, (this.world.provider instanceof IExitHeight ? ((IExitHeight) this.world.provider).getYCoordinateToTeleport() : 1200) - 200);
                 return;
             }
         }
 
         //Not launch controlled
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             for (Entity e : this.getPassengers())
             {
@@ -441,7 +440,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
     }
 
     @Override
-    public boolean processInitialInteract(EntityPlayer player, @Nullable ItemStack stack, EnumHand hand)
+    public boolean processInitialInteract(EntityPlayer player, EnumHand hand)
     {
         if (hand != EnumHand.MAIN_HAND)
         {
@@ -455,9 +454,9 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
 
         if (!this.getPassengers().isEmpty() && this.getPassengers().contains(player))
         {
-            if (!this.worldObj.isRemote)
+            if (!this.world.isRemote)
             {
-                GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_RESET_THIRD_PERSON, this.worldObj.provider.getDimension(), new Object[] { }), (EntityPlayerMP) player);
+                GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_RESET_THIRD_PERSON, this.world.provider.getDimension(), new Object[] { }), (EntityPlayerMP) player);
                 GCPlayerStats stats = GCPlayerStats.get(player);
                 stats.setChatCooldown(0);
                 // Prevent player being dropped from the top of the rocket...
@@ -471,9 +470,9 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
         }
         else if (player instanceof EntityPlayerMP)
         {
-            if (!this.worldObj.isRemote)
+            if (!this.world.isRemote)
             {
-                GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_DISPLAY_ROCKET_CONTROLS, this.worldObj.provider.getDimension(), new Object[] { }), (EntityPlayerMP) player);
+                GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_DISPLAY_ROCKET_CONTROLS, this.world.provider.getDimension(), new Object[] { }), (EntityPlayerMP) player);
                 GCPlayerStats stats = GCPlayerStats.get(player);
                 stats.setChatCooldown(0);
                 player.startRiding(this);
@@ -488,7 +487,7 @@ public abstract class EntityTieredRocket extends EntityAutoRocket implements IRo
     @Override
     protected void writeEntityToNBT(NBTTagCompound nbt)
     {
-    	if (worldObj.isRemote) return;
+    	if (world.isRemote) return;
     	nbt.setInteger("Type", this.rocketType.getIndex());
         super.writeEntityToNBT(nbt);
     }

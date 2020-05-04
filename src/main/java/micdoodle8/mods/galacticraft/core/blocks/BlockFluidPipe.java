@@ -14,6 +14,7 @@ import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
@@ -195,9 +196,9 @@ public class BlockFluidPipe extends BlockTransmitter implements ITileEntityProvi
     }
 
     @Override
-    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn)
+    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
     {
-        super.neighborChanged(state, worldIn, pos, blockIn);
+        super.neighborChanged(state, worldIn, pos, blockIn, fromPos);
         worldIn.notifyLightSet(pos);
     }
 
@@ -225,11 +226,11 @@ public class BlockFluidPipe extends BlockTransmitter implements ITileEntityProvi
     }
 
     @Override
-    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, ItemStack heldItem, EnumFacing side, float hitX, float hitY, float hitZ)
+    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing side, float hitX, float hitY, float hitZ)
     {
         final TileEntityFluidPipe tileEntity = (TileEntityFluidPipe) worldIn.getTileEntity(pos);
 
-        if (super.onBlockActivated(worldIn, pos, state, playerIn, hand, heldItem, side, hitX, hitY, hitZ))
+        if (super.onBlockActivated(worldIn, pos, state, playerIn, hand, side, hitX, hitY, hitZ))
         {
             return true;
         }
@@ -238,7 +239,7 @@ public class BlockFluidPipe extends BlockTransmitter implements ITileEntityProvi
         {
             final ItemStack stack = playerIn.inventory.getCurrentItem();
 
-            if (stack != null)
+            if (!stack.isEmpty())
             {
                 if (stack.getItem() instanceof ItemDye)
                 {
@@ -252,9 +253,9 @@ public class BlockFluidPipe extends BlockTransmitter implements ITileEntityProvi
 
                     GalacticraftCore.packetPipeline.sendToAllAround(new PacketSimple(PacketSimple.EnumSimplePacket.C_RECOLOR_PIPE, GCCoreUtil.getDimensionID(worldIn), new Object[] { pos }), new NetworkRegistry.TargetPoint(GCCoreUtil.getDimensionID(worldIn), pos.getX(), pos.getY(), pos.getZ(), 40.0));
 
-                    if (colorBefore != (byte) dyeColor && !playerIn.capabilities.isCreativeMode && --playerIn.inventory.getCurrentItem().stackSize == 0)
+                    if (colorBefore != (byte) dyeColor && !playerIn.capabilities.isCreativeMode)
                     {
-                        playerIn.inventory.mainInventory[playerIn.inventory.currentItem] = null;
+                        playerIn.inventory.getCurrentItem().shrink(1);
                     }
 
                     if (colorBefore != (byte) dyeColor && colorBefore != 15)
@@ -293,7 +294,7 @@ public class BlockFluidPipe extends BlockTransmitter implements ITileEntityProvi
         final double d2 = syncRandom.nextFloat() * f + (1.0F - f) * 0.5D;
         final EntityItem entityitem = new EntityItem(worldIn, pos.getX() + d0, pos.getY() + d1, pos.getZ() + d2, new ItemStack(Items.DYE, 1, colorBefore));
         entityitem.setDefaultPickupDelay();
-        worldIn.spawnEntityInWorld(entityitem);
+        worldIn.spawnEntity(entityitem);
     }
 
     @Override
@@ -312,6 +313,12 @@ public class BlockFluidPipe extends BlockTransmitter implements ITileEntityProvi
     public boolean isFullCube(IBlockState state)
     {
         return false;
+    }
+
+    @Override
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face)
+    {
+        return BlockFaceShape.UNDEFINED;
     }
 
     @Override

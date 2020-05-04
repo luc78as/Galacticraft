@@ -1,9 +1,13 @@
 package micdoodle8.mods.galacticraft.core.items;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
 import micdoodle8.mods.galacticraft.core.GCItems;
 import micdoodle8.mods.galacticraft.core.GalacticraftCore;
 import micdoodle8.mods.galacticraft.core.proxy.ClientProxyCore;
 import micdoodle8.mods.galacticraft.core.util.CompatibilityManager;
+import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
 import micdoodle8.mods.galacticraft.core.util.JavaUtil;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
@@ -11,25 +15,22 @@ import net.minecraft.item.EnumRarity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.NonNullList;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidContainerItem;
 import net.minecraftforge.fluids.capability.ItemFluidContainer;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.util.List;
-
-//In Minecraft 1.10, dual implementation of both old and new ItemFluidContainer system :)
-public abstract class ItemCanisterGeneric extends ItemFluidContainer implements IFluidContainerItem
+public abstract class ItemCanisterGeneric extends ItemFluidContainer
 {
-    private String allowedFluid = null;
     public final static int EMPTY = Fluid.BUCKET_VOLUME + 1;
     private static boolean isTELoaded = CompatibilityManager.isTELoaded();
+	
+    private String allowedFluid = null;
 
     public ItemCanisterGeneric(String assetName)
     {
@@ -43,7 +44,7 @@ public abstract class ItemCanisterGeneric extends ItemFluidContainer implements 
     }
 
     @Override
-    public boolean isItemTool(ItemStack stack)
+    public boolean isEnchantable(ItemStack stack)
     {
         return false;
     }
@@ -52,12 +53,6 @@ public abstract class ItemCanisterGeneric extends ItemFluidContainer implements 
     public ICapabilityProvider initCapabilities(ItemStack stack, NBTTagCompound nbt)
     {
         return new ItemCanisterGenericHandler(stack);
-    }
-
-    @Override
-    public int getCapacity(ItemStack container)
-    {
-        return ItemCanisterGeneric.EMPTY - 1;
     }
 
     @Override
@@ -75,9 +70,12 @@ public abstract class ItemCanisterGeneric extends ItemFluidContainer implements 
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void getSubItems(Item par1, CreativeTabs par2CreativeTabs, List<ItemStack> par3List)
+    public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> list)
     {
-        par3List.add(new ItemStack(par1, 1, 1));
+        if (tab == GalacticraftCore.galacticraftItemsTab || tab == CreativeTabs.SEARCH)
+        {
+            list.add(new ItemStack(this, 1, 1));
+        }
     }
 
     @Override
@@ -88,7 +86,7 @@ public abstract class ItemCanisterGeneric extends ItemFluidContainer implements 
         {
             if (JavaUtil.instance.isCalledBy("thermalexpansion.block.machine.TileTransposer"))
             {
-                return null;
+                return ItemStack.EMPTY;
             }
         }
 
@@ -122,16 +120,25 @@ public abstract class ItemCanisterGeneric extends ItemFluidContainer implements 
         return this.allowedFluid;
     }
 
-    @Override
     public int fill(ItemStack container, FluidStack resource, boolean doFill)
     {
-        if (resource == null || resource.getFluid() == null || resource.amount == 0 || container == null || container.getItemDamage() <= 1 || !(container.getItem() instanceof ItemCanisterGeneric))
+        if (resource == null || resource.getFluid() == null || resource.amount <= 0 || container == null || container.getItemDamage() <= 1 || !(container.getItem() instanceof ItemCanisterGeneric))
         {
             return 0;
         }
-
         String fluidName = resource.getFluid().getName();
-        if (container.getItemDamage() >= ItemCanisterGeneric.EMPTY)
+
+        int capacityPlusOne = container.getItemDamage();
+        if (capacityPlusOne <= 1)
+        {
+        	if (capacityPlusOne < 1)
+        	{
+	            //It shouldn't be possible, but just in case, set this to a proper filled item
+        		container.setItemDamage(1);
+        	}
+        	return 0;
+        }
+        if (capacityPlusOne >= ItemCanisterGeneric.EMPTY)
         {
             //Empty canister - find a new canister to match the fluid
             for (ItemCanisterGeneric i : GCItems.canisterTypes)
@@ -147,20 +154,17 @@ public abstract class ItemCanisterGeneric extends ItemFluidContainer implements 
                     break;
                 }
             }
-            //Delete any Forge fluid contents and set this to a clean empty item
-            container.setTagCompound(null);
-            container.setItemDamage(ItemCanisterGeneric.EMPTY);
+            if (capacityPlusOne > ItemCanisterGeneric.EMPTY)
+            {
+	            //It shouldn't be possible, but just in case, set this to a proper empty item
+            	capacityPlusOne = ItemCanisterGeneric.EMPTY;
+	            container.setItemDamage(capacityPlusOne);
+            }
         }
-        else
-        {
-            //Refresh the Forge fluid contents
-            container.setTagCompound(null);
-            super_fill(container, this.getFluid(container), true);
-        }
-
+        
         if (fluidName.equalsIgnoreCase(((ItemCanisterGeneric) container.getItem()).allowedFluid))
         {
-            int added = super_fill(container, resource, doFill);
+            int added = Math.min(resource.amount, capacityPlusOne - 1);
             if (doFill && added > 0)
             {
                 container.setItemDamage(Math.max(1, container.getItemDamage() - added));
@@ -171,7 +175,6 @@ public abstract class ItemCanisterGeneric extends ItemFluidContainer implements 
         return 0;
     }
 
-    @Override
     public FluidStack drain(ItemStack container, int maxDrain, boolean doDrain)
     {
         if (this.allowedFluid == null || container.getItemDamage() >= ItemCanisterGeneric.EMPTY)
@@ -179,158 +182,48 @@ public abstract class ItemCanisterGeneric extends ItemFluidContainer implements 
             return null;
         }
 
-        //Refresh the Forge fluid contents
-        container.setTagCompound(null);
-        super_fill(container, this.getFluid(container), true);
-
-        FluidStack used = super_drain(container, maxDrain, doDrain);
+        FluidStack used = this.getFluid(container);
+        if (used != null && used.amount > maxDrain) used.amount = maxDrain;
         if (doDrain && used != null && used.amount > 0)
         {
             this.setNewDamage(container, container.getItemDamage() + used.amount);
         }
         return used;
     }
-    
-    private int super_fill(ItemStack container, FluidStack resource, boolean doFill)
-    {
-        if (resource == null)
-        {
-            return 0;
-        }
-
-        if (!doFill)
-        {
-            if (!container.hasTagCompound() || !container.getTagCompound().hasKey("Fluid"))
-            {
-                return Math.min(capacity, resource.amount);
-            }
-
-            FluidStack stack = FluidStack.loadFluidStackFromNBT(container.getTagCompound().getCompoundTag("Fluid"));
-
-            if (stack == null)
-            {
-                return Math.min(capacity, resource.amount);
-            }
-
-            if (!stack.isFluidEqual(resource))
-            {
-                return 0;
-            }
-
-            return Math.min(capacity - stack.amount, resource.amount);
-        }
-
-        if (!container.hasTagCompound())
-        {
-            container.setTagCompound(new NBTTagCompound());
-        }
-
-        if (!container.getTagCompound().hasKey("Fluid"))
-        {
-            NBTTagCompound fluidTag = resource.writeToNBT(new NBTTagCompound());
-
-            if (capacity < resource.amount)
-            {
-                fluidTag.setInteger("Amount", capacity);
-                container.getTagCompound().setTag("Fluid", fluidTag);
-                return capacity;
-            }
-
-            container.getTagCompound().setTag("Fluid", fluidTag);
-            return resource.amount;
-        }
-
-        NBTTagCompound fluidTag = container.getTagCompound().getCompoundTag("Fluid");
-        FluidStack stack = FluidStack.loadFluidStackFromNBT(fluidTag);
-
-        if (!stack.isFluidEqual(resource))
-        {
-            return 0;
-        }
-
-        int filled = capacity - stack.amount;
-        if (resource.amount < filled)
-        {
-            stack.amount += resource.amount;
-            filled = resource.amount;
-        }
-        else
-        {
-            stack.amount = capacity;
-        }
-
-        container.getTagCompound().setTag("Fluid", stack.writeToNBT(fluidTag));
-        return filled;
-    }
-
-    private FluidStack super_drain(ItemStack container, int maxDrain, boolean doDrain)
-    {
-        if (!container.hasTagCompound() || !container.getTagCompound().hasKey("Fluid"))
-        {
-            return null;
-        }
-
-        FluidStack stack = FluidStack.loadFluidStackFromNBT(container.getTagCompound().getCompoundTag("Fluid"));
-        if (stack == null)
-        {
-            return null;
-        }
-
-        int currentAmount = stack.amount;
-        stack.amount = Math.min(stack.amount, maxDrain);
-        if (doDrain)
-        {
-            if (currentAmount == stack.amount)
-            {
-                container.getTagCompound().removeTag("Fluid");
-
-                if (container.getTagCompound().hasNoTags())
-                {
-                    container.setTagCompound(null);
-                }
-                return stack;
-            }
-
-            NBTTagCompound fluidTag = container.getTagCompound().getCompoundTag("Fluid");
-            fluidTag.setInteger("Amount", currentAmount - stack.amount);
-            container.getTagCompound().setTag("Fluid", fluidTag);
-        }
-        return stack;
-    }
 
     protected void setNewDamage(ItemStack container, int newDamage)
     {
         newDamage = Math.min(newDamage, ItemCanisterGeneric.EMPTY);
+        container.setItemDamage(newDamage);
         if (newDamage == ItemCanisterGeneric.EMPTY)
         {
-            container.setTagCompound(null);
             if (container.getItem() != GCItems.oilCanister)
             {
                 this.replaceEmptyCanisterItem(container, GCItems.oilCanister);
                 return;
             }
         }
-
-        container.setItemDamage(newDamage);
     }
 
     private void replaceEmptyCanisterItem(ItemStack container, Item newItem)
     {
-        //This is a neat trick to change the item ID in an ItemStack
-        final int stackSize = container.stackSize;
-        NBTTagCompound tag = new NBTTagCompound();
-        container.writeToNBT(tag);
-        ResourceLocation resourceloc = (ResourceLocation)Item.REGISTRY.getNameForObject(newItem);
-        if (resourceloc != null) tag.setString("id", resourceloc.toString());
-        tag.setShort("Damage", (short) ItemCanisterGeneric.EMPTY);
-        container.readFromNBT(tag);
+    	try
+    	{
+    		Class itemStack = container.getClass();
+    		Field itemId = itemStack.getDeclaredField(GCCoreUtil.isDeobfuscated() ? "item" : "field_151002_e");
+    		itemId.setAccessible(true);
+    		itemId.set(container, newItem);
+    		Method forgeInit = itemStack.getDeclaredMethod("forgeInit");
+    		forgeInit.setAccessible(true);
+    		forgeInit.invoke(container);
+    	}
+    	catch (Exception ignore) { }
     }
-
-    @Override
+    
     public FluidStack getFluid(ItemStack container)
     {
         String fluidName = ((ItemCanisterGeneric) container.getItem()).allowedFluid;
-        if (fluidName == null || ItemCanisterGeneric.EMPTY == container.getItemDamage())
+        if (fluidName == null || container.getItemDamage() >= ItemCanisterGeneric.EMPTY )
         {
             return null;
         }

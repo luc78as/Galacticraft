@@ -29,42 +29,44 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
-public class TileEntityFluidTank extends TileEntityAdvanced implements IFluidHandler, IFluidHandlerWrapper
+public class TileEntityFluidTank extends TileEntityAdvanced implements IFluidHandlerWrapper
 {
     public FluidTankGC fluidTank = new FluidTankGC(16000, this);
     public boolean updateClient = false;
     private DelayTimer delayTimer = new DelayTimer(1);
     private AxisAlignedBB renderAABB;
 
-    @Override
-    public boolean hasCapability(Capability<?> capability, EnumFacing facing)
+    public TileEntityFluidTank()
     {
-        return capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY;
+        super("tile.fluid_tank.name");
     }
 
     @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing facing)
+    public int[] getSlotsForFace(EnumFacing side)
     {
-        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY)
-        {
-            return (T) new FluidHandlerWrapper(this, facing);
-        }
-        return null;
+        return new int[0];
+    }
+
+    @Override
+    protected boolean handleInventory()
+    {
+        return false;
     }
 
     public void onBreak()
     {
         if (fluidTank.getFluidAmount() > 0)
         {
-            FluidEvent.fireEvent(new FluidEvent.FluidSpilledEvent(fluidTank.getFluid(), worldObj, pos));
-            if (!this.worldObj.isRemote && fluidTank.getFluidAmount() > 1000)
+            FluidEvent.fireEvent(new FluidEvent.FluidSpilledEvent(fluidTank.getFluid(), world, pos));
+            if (!this.world.isRemote && fluidTank.getFluidAmount() > 1000)
             {
                 Block b = fluidTank.getFluid().getFluid().getBlock();
                 if (!(b == null || b instanceof BlockAir))
                 {
-                    TickHandlerServer.scheduleNewBlockChange(GCCoreUtil.getDimensionID(this.worldObj), new ScheduledBlockChange(pos, b.getStateFromMeta(0), 3));
+                	TickHandlerServer.scheduleNewBlockChange(GCCoreUtil.getDimensionID(this.world), new ScheduledBlockChange(pos, b.getStateFromMeta(0), 3));
                 }
             }
         }
@@ -80,10 +82,10 @@ public class TileEntityFluidTank extends TileEntityAdvanced implements IFluidHan
             moveFluidDown();
         }
 
-        if (!this.worldObj.isRemote && updateClient && delayTimer.markTimeIfDelay(this.worldObj))
+        if (!this.world.isRemote && updateClient && delayTimer.markTimeIfDelay(this.world))
         {
             PacketDynamic packet = new PacketDynamic(this);
-            GalacticraftCore.packetPipeline.sendToAllAround(packet, new NetworkRegistry.TargetPoint(GCCoreUtil.getDimensionID(this.worldObj), getPos().getX(), getPos().getY(), getPos().getZ(), this.getPacketRange()));
+            GalacticraftCore.packetPipeline.sendToAllAround(packet, new NetworkRegistry.TargetPoint(GCCoreUtil.getDimensionID(this.world), getPos().getX(), getPos().getY(), getPos().getZ(), this.getPacketRange()));
             this.updateClient = false;
         }
     }
@@ -240,7 +242,7 @@ public class TileEntityFluidTank extends TileEntityAdvanced implements IFluidHan
 
     public TileEntityFluidTank getNextTank(BlockPos current)
     {
-        TileEntity above = worldObj.getTileEntity(current.up());
+        TileEntity above = this.world.getTileEntity(current.up());
         if (above instanceof TileEntityFluidTank)
         {
             return (TileEntityFluidTank) above;
@@ -250,7 +252,7 @@ public class TileEntityFluidTank extends TileEntityAdvanced implements IFluidHan
 
     public TileEntityFluidTank getPreviousTank(BlockPos current)
     {
-        TileEntity below = this.worldObj.getTileEntity(current.down());
+        TileEntity below = this.world.getTileEntity(current.down());
         if (below instanceof TileEntityFluidTank)
         {
             return (TileEntityFluidTank) below;
@@ -308,7 +310,7 @@ public class TileEntityFluidTank extends TileEntityAdvanced implements IFluidHan
     @SideOnly(Side.CLIENT)
     public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt)
     {
-        if (!worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             return;
         }
@@ -337,7 +339,7 @@ public class TileEntityFluidTank extends TileEntityAdvanced implements IFluidHan
     @Override
     public void addExtraNetworkedData(List<Object> networkedList)
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             if (fluidTank == null)
             {
@@ -357,7 +359,7 @@ public class TileEntityFluidTank extends TileEntityAdvanced implements IFluidHan
     @Override
     public void readExtraNetworkedData(ByteBuf buffer)
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             int capacity = buffer.readInt();
             String fluidName = ByteBufUtils.readUTF8String(buffer);
@@ -397,6 +399,22 @@ public class TileEntityFluidTank extends TileEntityAdvanced implements IFluidHan
     }
 
     @Override
+    public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing)
+    {
+        return capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY || super.hasCapability(capability, facing);
+    }
+
+    @Nullable
+    @Override
+    public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing facing)
+    {
+        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY)
+        {
+            return (T) new FluidHandlerWrapper(this, facing);
+        }
+        return super.getCapability(capability, facing);
+    }
+
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox()
     {

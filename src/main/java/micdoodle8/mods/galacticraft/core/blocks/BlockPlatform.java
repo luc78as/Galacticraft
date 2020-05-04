@@ -16,11 +16,13 @@ import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.IStringSerializable;
@@ -62,9 +64,10 @@ public class BlockPlatform extends BlockAdvancedTile implements IPartialSealable
             return this.meta;
         }
 
+        private final static EnumCorner[] values = values();
         public static EnumCorner byMetadata(int meta)
         {
-            return values()[meta];
+            return values[meta % values.length];
         }
 
         @Override
@@ -135,6 +138,12 @@ public class BlockPlatform extends BlockAdvancedTile implements IPartialSealable
     }
 
     @Override
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face)
+    {
+        return BlockFaceShape.UNDEFINED;
+    }
+
+    @Override
     @SideOnly(Side.CLIENT)
     public boolean shouldSideBeRendered(IBlockState blockState, IBlockAccess blockAccess, BlockPos pos, EnumFacing side)
     {
@@ -145,6 +154,13 @@ public class BlockPlatform extends BlockAdvancedTile implements IPartialSealable
     public boolean doesSideBlockRendering(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing face)
     {
         return false;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public BlockRenderLayer getBlockLayer()
+    {
+        return BlockRenderLayer.CUTOUT;
     }
 
     @Override
@@ -227,7 +243,7 @@ public class BlockPlatform extends BlockAdvancedTile implements IPartialSealable
     }
     
     @Override
-    public void addCollisionBoxToList(IBlockState state, World worldIn, BlockPos pos, AxisAlignedBB mask, List<AxisAlignedBB> list, @Nullable Entity entityIn)
+    public void addCollisionBoxToList(IBlockState state, World worldIn, BlockPos pos, AxisAlignedBB mask, List<AxisAlignedBB> list, @Nullable Entity entityIn, boolean p_185477_7_)
     {
         if (ignoreCollisionTests) return;
         TileEntity te = worldIn.getTileEntity(pos);
@@ -237,7 +253,7 @@ public class BlockPlatform extends BlockAdvancedTile implements IPartialSealable
         }
         AxisAlignedBB axisalignedbb = this.getCollisionBoundingBox(state, worldIn, pos).offset(pos);
 
-        if (axisalignedbb != null && mask.intersectsWith(axisalignedbb))
+        if (axisalignedbb != null && mask.intersects(axisalignedbb))
         {
             list.add(axisalignedbb);
         }

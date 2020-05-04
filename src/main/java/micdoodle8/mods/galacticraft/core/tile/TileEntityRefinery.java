@@ -17,12 +17,15 @@ import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.NonNullList;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 
-public class TileEntityRefinery extends TileBaseElectricBlockWithInventory implements ISidedInventory, IFluidHandler, IFluidHandlerWrapper
+import javax.annotation.Nullable;
+
+public class TileEntityRefinery extends TileBaseElectricBlockWithInventory implements ISidedInventory, IFluidHandlerWrapper
 {
     private final int tankCapacity = 24000;
     @NetworkedField(targetSide = Side.CLIENT)
@@ -34,29 +37,14 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
     public static final int OUTPUT_PER_SECOND = 1;
     @NetworkedField(targetSide = Side.CLIENT)
     public int processTicks = 0;
-    private ItemStack[] containingItems = new ItemStack[3];
 
     public TileEntityRefinery()
     {
+        super("container.refinery.name");
         this.storage.setMaxExtract(ConfigManagerCore.hardMode ? 90 : 60);
         this.oilTank.setFluid(new FluidStack(GCFluids.fluidOil, 0));
         this.fuelTank.setFluid(new FluidStack(GCFluids.fluidFuel, 0));
-    }
-
-    @Override
-    public boolean hasCapability(Capability<?> capability, EnumFacing facing)
-    {
-        return capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY;
-    }
-
-    @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing facing)
-    {
-        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY)
-        {
-            return (T) new FluidHandlerWrapper(this, facing);
-        }
-        return null;
+        this.inventory = NonNullList.withSize(3, ItemStack.EMPTY);
     }
 
     @Override
@@ -64,12 +52,12 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
     {
         super.update();
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
-            final FluidStack liquid = FluidUtil.getFluidContained(this.containingItems[1]);
-            if (FluidUtil.isFluidFuzzy(liquid, "oil"))
+            final FluidStack liquid = FluidUtil.getFluidContained(this.getInventory().get(1));
+            if (FluidUtil.isOil(liquid))
             {
-                FluidUtil.loadFromContainer(this.oilTank, GCFluids.fluidOil, this.containingItems, 1, liquid.amount);
+                FluidUtil.loadFromContainer(this.oilTank, GCFluids.fluidOil, this.getInventory(), 1, liquid.amount);
             }
 
             checkFluidTankTransfer(2, this.fuelTank);
@@ -103,7 +91,7 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
 
     private void checkFluidTankTransfer(int slot, FluidTank tank)
     {
-        FluidUtil.tryFillContainerFuel(tank, this.containingItems, slot);
+        FluidUtil.tryFillContainerFuel(tank, this.getInventory(), slot);
     }
 
     public int getScaledOilLevel(int i)
@@ -151,7 +139,6 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
     {
         super.readFromNBT(nbt);
         this.processTicks = nbt.getInteger("smeltingTicks");
-        this.containingItems = this.readStandardItemsFromNBT(nbt);
 
         if (nbt.hasKey("oilTank"))
         {
@@ -178,7 +165,6 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
     {
         super.writeToNBT(nbt);
         nbt.setInteger("smeltingTicks", this.processTicks);
-        this.writeStandardItemsToNBT(nbt);
 
         if (this.oilTank.getFluid() != null)
         {
@@ -190,19 +176,6 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
             nbt.setTag("fuelTank", this.fuelTank.writeToNBT(new NBTTagCompound()));
         }
         return nbt;
-    }
-
-
-    @Override
-    protected ItemStack[] getContainingItems()
-    {
-        return this.containingItems;
-    }
-
-    @Override
-    public String getName()
-    {
-        return GCCoreUtil.translate("container.refinery.name");
     }
 
     @Override
@@ -222,7 +195,7 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
     @Override
     public boolean canInsertItem(int slotID, ItemStack itemstack, EnumFacing side)
     {
-        if (itemstack != null && this.isItemValidForSlot(slotID, itemstack))
+        if (!itemstack.isEmpty() && this.isItemValidForSlot(slotID, itemstack))
         {
             switch (slotID)
             {
@@ -231,7 +204,7 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
             case 1:
                 return FluidUtil.isOilContainerAny(itemstack);
             case 2:
-                return FluidUtil.isEmptyContainer(itemstack, GCItems.fuelCanister);
+                return FluidUtil.isPartialContainer(itemstack, GCItems.fuelCanister);
             default:
                 return false;
             }
@@ -242,7 +215,7 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
     @Override
     public boolean canExtractItem(int slotID, ItemStack itemstack, EnumFacing side)
     {
-        if (itemstack != null && this.isItemValidForSlot(slotID, itemstack))
+        if (!itemstack.isEmpty() && this.isItemValidForSlot(slotID, itemstack))
         {
             switch (slotID)
             {
@@ -265,7 +238,7 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
         switch (slotID)
         {
         case 0:
-            return itemstack != null && ItemElectricBase.isElectricItem(itemstack.getItem());
+            return !itemstack.isEmpty() && ItemElectricBase.isElectricItem(itemstack.getItem());
         case 1:
         case 2:
             return FluidUtil.isValidContainer(itemstack);
@@ -289,7 +262,7 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
     @Override
     public EnumFacing getFront()
     {
-        IBlockState state = this.worldObj.getBlockState(getPos()); 
+        IBlockState state = this.world.getBlockState(getPos()); 
         if (state.getBlock() instanceof BlockRefinery)
         {
             return state.getValue(BlockRefinery.FACING);
@@ -392,7 +365,24 @@ public class TileEntityRefinery extends TileBaseElectricBlockWithInventory imple
 
         return tankInfo;
     }
-    
+
+    @Override
+    public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing)
+    {
+        return capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY || super.hasCapability(capability, facing);
+    }
+
+    @Nullable
+    @Override
+    public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing facing)
+    {
+        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY)
+        {
+            return (T) new FluidHandlerWrapper(this, facing);
+        }
+        return super.getCapability(capability, facing);
+    }
+
     @Override
     public boolean canConnect(EnumFacing direction, NetworkType type)
     {

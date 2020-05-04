@@ -70,7 +70,7 @@ public class BlockBossSpawner extends Block implements ITileEntityProvider
     @Override
     public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world, BlockPos pos, EntityPlayer player)
     {
-        return null;
+        return ItemStack.EMPTY;
     }
 
     @Override
@@ -80,7 +80,7 @@ public class BlockBossSpawner extends Block implements ITileEntityProvider
     }
 
     @Override
-    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, World worldIn, BlockPos pos)
+    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, IBlockAccess worldIn, BlockPos pos)
     {
         return null;
     }

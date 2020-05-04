@@ -8,6 +8,7 @@ import micdoodle8.mods.galacticraft.core.util.EnumSortCategoryBlock;
 import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
 import micdoodle8.mods.galacticraft.planets.mars.items.MarsItems;
 import net.minecraft.block.BlockDragonEgg;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
@@ -59,7 +60,13 @@ public class BlockCreeperEgg extends BlockDragonEgg implements IShiftDescription
     }
 
     @Override
-    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, ItemStack heldItem, EnumFacing side, float hitX, float hitY, float hitZ)
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face)
+    {
+        return BlockFaceShape.UNDEFINED;
+    }
+
+    @Override
+    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing side, float hitX, float hitY, float hitZ)
     {
         return false;
     }
@@ -74,7 +81,7 @@ public class BlockCreeperEgg extends BlockDragonEgg implements IShiftDescription
     @SideOnly(Side.CLIENT)
     public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world, BlockPos pos, EntityPlayer player)
     {
-        return null;
+        return ItemStack.EMPTY;
     }
 
     @Override
@@ -85,7 +92,7 @@ public class BlockCreeperEgg extends BlockDragonEgg implements IShiftDescription
             EntityEvolvedCreeper creeper = new EntityEvolvedCreeper(world);
             creeper.setPosition(pos.getX() + 0.5, pos.getY() + 3, pos.getZ() + 0.5);
             creeper.setChild(true);
-            world.spawnEntityInWorld(creeper);
+            world.spawnEntity(creeper);
         }
 
         world.setBlockToAir(pos);
@@ -103,7 +110,7 @@ public class BlockCreeperEgg extends BlockDragonEgg implements IShiftDescription
     public boolean canHarvestBlock(IBlockAccess world, BlockPos pos, EntityPlayer player)
     {
         ItemStack stack = player.inventory.getCurrentItem();
-        if (stack == null)
+        if (stack.isEmpty())
         {
             return player.canHarvestBlock(world.getBlockState(pos));
         }

@@ -23,14 +23,14 @@ public abstract class EntityFXLaunchParticle extends Particle
     }
     
     @Override
-    public void moveEntity(double x, double y, double z)
+    public void move(double x, double y, double z)
     {
         double d0 = y;
         double origX = x;
         double origZ = z;
 
-        List<AxisAlignedBB> list = this.getCollidingBoundingBoxes(this.getEntityBoundingBox().addCoord(x, y, z));
-        AxisAlignedBB axisalignedbb = this.getEntityBoundingBox();
+        List<AxisAlignedBB> list = this.getCollidingBoundingBoxes(this.getBoundingBox().expand(x, y, z));
+        AxisAlignedBB axisalignedbb = this.getBoundingBox();
 
         for (AxisAlignedBB blocker : list)
         {
@@ -57,19 +57,11 @@ public abstract class EntityFXLaunchParticle extends Particle
         }
         axisalignedbb = axisalignedbb.offset(0.0D, 0.0D, z);
 
-        this.setEntityBoundingBox(axisalignedbb);
+        this.setBoundingBox(axisalignedbb);
         this.posX = (axisalignedbb.minX + axisalignedbb.maxX) / 2.0D;
         this.posY = axisalignedbb.minY;
         this.posZ = (axisalignedbb.minZ + axisalignedbb.maxZ) / 2.0D;
-        this.isCollided = false;
-//        if (origX != x)
-//        {
-//            this.motionX = 0.0D;
-//        }
-//        if (origZ != z)
-//        {
-//            this.motionZ = 0.0D;
-//        }
+        this.onGround = false;
     }
 
     /**
@@ -78,13 +70,13 @@ public abstract class EntityFXLaunchParticle extends Particle
     public List<AxisAlignedBB> getCollidingBoundingBoxes(AxisAlignedBB bb)
     {
         List<AxisAlignedBB> list = new LinkedList<>();
-        World w = this.worldObj;
-        int xs = MathHelper.floor_double(bb.minX) - 1;
-        int xe = MathHelper.ceiling_double_int(bb.maxX);
-        int ys = MathHelper.floor_double(bb.minY) - 1;
-        int ye = MathHelper.ceiling_double_int(bb.maxY);
-        int zs = MathHelper.floor_double(bb.minZ) - 1;
-        int ze = MathHelper.ceiling_double_int(bb.maxZ);
+        World w = this.world;
+        int xs = MathHelper.floor(bb.minX) - 1;
+        int xe = MathHelper.ceil(bb.maxX);
+        int ys = MathHelper.floor(bb.minY) - 1;
+        int ye = MathHelper.ceil(bb.maxY);
+        int zs = MathHelper.floor(bb.minZ) - 1;
+        int ze = MathHelper.ceil(bb.maxZ);
         BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
         IBlockState iblockstate1;
         boolean xends, xzmiddle;
@@ -115,7 +107,7 @@ public abstract class EntityFXLaunchParticle extends Particle
                             mutablePos.setPos(x, y, z);
                             iblockstate1 = w.getBlockState(mutablePos);
                             if (!(iblockstate1.getBlock() instanceof BlockAir) && !(iblockstate1.getBlock() instanceof BlockGrating))
-                                iblockstate1.addCollisionBoxToList(w, mutablePos, bb, list, null);
+                                iblockstate1.addCollisionBoxToList(w, mutablePos, bb, list, null, false);
                         }
                     }
                 }

@@ -1,9 +1,14 @@
 package micdoodle8.mods.galacticraft.core.entities.player;
 
 import com.mojang.authlib.GameProfile;
+import micdoodle8.mods.galacticraft.api.world.IGalacticraftWorldProvider;
 import micdoodle8.mods.galacticraft.core.GalacticraftCore;
+import micdoodle8.mods.galacticraft.core.advancement.GCTriggers;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.MoverType;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.PotionTypes;
+import net.minecraft.potion.PotionEffect;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.PlayerInteractionManager;
 import net.minecraft.util.DamageSource;
@@ -20,9 +25,9 @@ public class GCEntityPlayerMP extends EntityPlayerMP
     public GCEntityPlayerMP(MinecraftServer server, WorldServer world, GameProfile profile, PlayerInteractionManager interactionManager)
     {
         super(server, world, profile, interactionManager);
-//        if (this.worldObj != world)
+//        if (this.world != world)
 //        {
-//            GCPlayerStats.get(this).setStartDimension(WorldUtil.getDimensionName(this.worldObj.provider));
+//            GCPlayerStats.get(this).setStartDimension(WorldUtil.getDimensionName(this.world.provider));
 //        }
     }
 
@@ -44,10 +49,10 @@ public class GCEntityPlayerMP extends EntityPlayerMP
     }
 
     @Override
-    public void moveEntity(double par1, double par3, double par5)
+    public void move(MoverType type, double x, double y, double z)
     {
-        super.moveEntity(par1, par3, par5);
-        GalacticraftCore.proxy.player.moveEntity(this, par1, par3, par5);
+        super.move(type, x, y, z);
+        GalacticraftCore.proxy.player.move(this, type, x, y, z);
     }
 
     @Override
@@ -82,7 +87,7 @@ public class GCEntityPlayerMP extends EntityPlayerMP
     /*@Override
     public void setInPortal()
     {
-    	if (!(this.worldObj.provider instanceof IGalacticraftWorldProvider))
+    	if (!(this.world.provider instanceof IGalacticraftWorldProvider))
     	{
     		super.setInPortal();
     	}

@@ -37,9 +37,9 @@ public class TextureDungeonFinder extends TextureAtlasSprite
     {
         Minecraft minecraft = Minecraft.getMinecraft();
 
-        if (minecraft.theWorld != null && minecraft.thePlayer != null)
+        if (minecraft.world != null && minecraft.player != null)
         {
-            this.updateCompass(minecraft.theWorld, minecraft.thePlayer, (double)minecraft.thePlayer.rotationYaw, false, false);
+            this.updateCompass(minecraft.world, minecraft.player, (double)minecraft.player.rotationYaw, false, false);
         }
         else
         {
@@ -88,7 +88,7 @@ public class TextureDungeonFinder extends TextureAtlasSprite
                     d3 -= (Math.PI * 2D);
                 }
 
-                d3 = MathHelper.clamp_double(d3, -1.0D, 1.0D);
+                d3 = MathHelper.clamp(d3, -1.0D, 1.0D);
                 this.angleDelta += d3 * 0.1D;
                 this.angleDelta *= 0.8D;
                 this.currentAngle += this.angleDelta;

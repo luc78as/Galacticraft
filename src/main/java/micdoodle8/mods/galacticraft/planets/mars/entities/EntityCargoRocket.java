@@ -22,8 +22,12 @@ import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.WorldServer;
@@ -46,7 +50,7 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
     {
         super(par1World, par2, par4, par6);
         this.rocketType = rocketType;
-        this.cargoItems = new ItemStack[this.getSizeInventory()];
+        this.stacks = NonNullList.withSize(this.getSizeInventory(), ItemStack.EMPTY);
         this.setSize(0.98F, 2F);
     }
 
@@ -60,9 +64,9 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
     {
         float weight = 1;
 
-        for (ItemStack stack : this.cargoItems)
+        for (ItemStack stack : this.stacks)
         {
-            if (stack != null)
+            if (stack != null && !stack.isEmpty())
             {
                 weight += 0.1D;
             }
@@ -99,9 +103,9 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
 
             double multiplier = 1.0D;
 
-            if (this.worldObj.provider instanceof IGalacticraftWorldProvider)
+            if (this.world.provider instanceof IGalacticraftWorldProvider)
             {
-                multiplier = ((IGalacticraftWorldProvider) this.worldObj.provider).getFuelUsageMultiplier();
+                multiplier = ((IGalacticraftWorldProvider) this.world.provider).getFuelUsageMultiplier();
 
                 if (multiplier <= 0)
                 {
@@ -109,7 +113,7 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
                 }
             }
 
-            if (this.timeSinceLaunch % MathHelper.floor_double(3 * (1 / multiplier)) == 0)
+            if (this.timeSinceLaunch % MathHelper.floor(3 * (1 / multiplier)) == 0)
             {
                 this.removeFuel(1);
                 if (!this.hasValidFuel())
@@ -158,7 +162,7 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
 
         if ((this.getLaunched() || this.launchPhase == EnumLaunchPhase.IGNITED.ordinal() && this.rand.nextInt(i) == 0) && !ConfigManagerCore.disableSpaceshipParticles && this.hasValidFuel())
         {
-            if (this.worldObj.isRemote)
+            if (this.world.isRemote)
             {
                 this.spawnParticles(this.getLaunched());
             }
@@ -217,7 +221,7 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
     @Override
     public void getNetworkedData(ArrayList<Object> list)
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             return;
         }
@@ -231,7 +235,7 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
     @Override
     public void onReachAtmosphere()
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             //stop the sounds on the client - but do not reset, the rocket may start again
             this.stopRocketSound();
@@ -244,15 +248,15 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
         if (this.targetVec != null)
         {
             GCLog.debug("Destination location = " + this.targetVec.toString());
-            if (this.targetDimension != GCCoreUtil.getDimensionID(this.worldObj))
+            if (this.targetDimension != GCCoreUtil.getDimensionID(this.world))
             {
                 GCLog.debug("Destination is in different dimension: " + this.targetDimension);
                 WorldProvider targetDim = WorldUtil.getProviderForDimensionServer(this.targetDimension);
-                if (targetDim != null && targetDim.worldObj instanceof WorldServer)
+                if (targetDim != null && targetDim.world instanceof WorldServer)
                 {
                     GCLog.debug("Loaded destination dimension " + this.targetDimension);
                     this.setPosition(this.targetVec.getX() + 0.5F, this.targetVec.getY() + 800, this.targetVec.getZ() + 0.5F);
-                    Entity e = WorldUtil.transferEntityToDimension(this, this.targetDimension, (WorldServer) targetDim.worldObj, false, null);
+                    Entity e = WorldUtil.transferEntityToDimension(this, this.targetDimension, (WorldServer) targetDim.world, false, null);
 
                     if (e instanceof EntityCargoRocket)
                     {
@@ -289,9 +293,9 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
     }
 
     @Override
-    public boolean processInitialInteract(EntityPlayer player, ItemStack stack, EnumHand hand)
+    public boolean processInitialInteract(EntityPlayer player, EnumHand hand)
     {
-        if (!this.worldObj.isRemote && player instanceof EntityPlayerMP)
+        if (!this.world.isRemote && player instanceof EntityPlayerMP)
         {
             MarsUtil.openCargoRocketInventory((EntityPlayerMP) player, this);
         }
@@ -302,7 +306,7 @@ public class EntityCargoRocket extends EntityAutoRocket implements IRocketType, 
     @Override
     protected void writeEntityToNBT(NBTTagCompound nbt)
     {
-    	if (worldObj.isRemote) return;
+    	if (world.isRemote) return;
         nbt.setInteger("Type", this.rocketType.getIndex());
 
         super.writeEntityToNBT(nbt);

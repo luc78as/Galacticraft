@@ -23,7 +23,6 @@ import net.minecraft.entity.passive.EntityHorse;
 import net.minecraft.entity.passive.EntityTameable;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.init.Items;
 import net.minecraft.init.MobEffects;
 import net.minecraft.init.SoundEvents;
@@ -117,7 +116,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
             String ownerName = getOwnerUsername();
             if (ownerName != null)
             {
-                return this.worldObj.getPlayerEntityByName(ownerName);
+                return this.world.getPlayerEntityByName(ownerName);
             }
         }
         return owner;
@@ -274,7 +273,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
     }
 
     @Override
-    protected SoundEvent getHurtSound()
+    protected SoundEvent getHurtSound(DamageSource damageSourceIn)
     {
         this.playSound(SoundEvents.BLOCK_SLIME_STEP, this.getSoundVolume(), 1.1F);
         return null;
@@ -298,7 +297,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
     {
         super.onLivingUpdate();
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             if (this.ticksAlive <= 0)
             {
@@ -325,7 +324,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
 //            this.setCargoSlot(this.slimelingInventory.getStackInSlot(1));
         }
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             this.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(this.getMaxHealthSlimeling());
 
@@ -368,10 +367,10 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
         }
         else
         {
-            Entity entity = par1DamageSource.getEntity();
+            Entity entity = par1DamageSource.getTrueSource();
             this.setSittingAI(false);
 
-            if (entity != null && !(entity instanceof EntityPlayer) && !(entity instanceof EntityArrow))
+            if (entity != null && !(entity instanceof EntityPlayer))
             {
                 par2 = (par2 + 1.0F) / 2.0F;
             }
@@ -400,26 +399,26 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
     }
 
     @Override
-    public boolean processInteract(EntityPlayer player, EnumHand hand, ItemStack stack)
+    public boolean processInteract(EntityPlayer player, EnumHand hand)
     {
         ItemStack itemstack = player.inventory.getCurrentItem();
 
         if (this.isTamed())
         {
-            if (itemstack != null)
+            if (!itemstack.isEmpty())
             {
                 if (itemstack.getItem() == this.getFavoriteFood())
                 {
                     if (this.isOwner(player))
                     {
-                        --itemstack.stackSize;
+                        itemstack.shrink(1);
 
-                        if (itemstack.stackSize <= 0)
+                        if (itemstack.isEmpty())
                         {
-                            player.inventory.setInventorySlotContents(player.inventory.currentItem, null);
+                            player.inventory.setInventorySlotContents(player.inventory.currentItem, ItemStack.EMPTY);
                         }
 
-                        if (this.worldObj.isRemote)
+                        if (this.world.isRemote)
                         {
                             MarsModuleClient.openSlimelingGui(this, 1);
                         }
@@ -436,7 +435,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
                             GCPlayerStats stats = GCPlayerStats.get(player);
                             if (stats.getChatCooldown() == 0)
                             {
-                                player.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.slimeling.chat.wrong_player")));
+                                player.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.slimeling.chat.wrong_player")));
                                 stats.setChatCooldown(100);
                             }
                         }
@@ -444,7 +443,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
                 }
                 else
                 {
-                    if (this.worldObj.isRemote)
+                    if (this.world.isRemote)
                     {
                         MarsModuleClient.openSlimelingGui(this, 0);
                     }
@@ -452,7 +451,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
             }
             else
             {
-                if (this.worldObj.isRemote)
+                if (this.world.isRemote)
                 {
                     MarsModuleClient.openSlimelingGui(this, 0);
                 }
@@ -460,43 +459,43 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
 
             return true;
         }
-        else if (itemstack != null && itemstack.getItem() == Items.SLIME_BALL)
+        else if (!itemstack.isEmpty() && itemstack.getItem() == Items.SLIME_BALL)
         {
             if (!player.capabilities.isCreativeMode)
             {
-                --itemstack.stackSize;
+                itemstack.shrink(1);
             }
 
-            if (itemstack.stackSize <= 0)
+            if (itemstack.isEmpty())
             {
-                player.inventory.setInventorySlotContents(player.inventory.currentItem, (ItemStack) null);
+                player.inventory.setInventorySlotContents(player.inventory.currentItem, ItemStack.EMPTY);
             }
 
-            if (!this.worldObj.isRemote)
+            if (!this.world.isRemote)
             {
                 if (this.rand.nextInt(3) == 0)
                 {
                     this.setTamed(true);
-                    this.getNavigator().clearPathEntity();
+                    this.getNavigator().clearPath();
                     this.setAttackTarget(null);
                     this.setSittingAI(true);
                     this.setHealth(20.0F);
                     this.setOwnerId(player.getUniqueID());
                     this.setOwnerUsername(player.getName());
                     this.playTameEffect(true);
-                    this.worldObj.setEntityState(this, (byte) 7);
+                    this.world.setEntityState(this, (byte) 7);
                 }
                 else
                 {
                     this.playTameEffect(false);
-                    this.worldObj.setEntityState(this, (byte) 6);
+                    this.world.setEntityState(this, (byte) 6);
                 }
             }
 
             return true;
         }
 
-        return super.processInteract(player, hand, stack);
+        return super.processInteract(player, hand);
     }
 
     public void setSittingAI(boolean sitting)
@@ -533,7 +532,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
             newColor.x = Math.max(Math.min(newColor.x, 1.0F), 0);
             newColor.y = Math.max(Math.min(newColor.y, 1.0F), 0);
             newColor.z = Math.max(Math.min(newColor.z, 1.0F), 0);
-            EntitySlimeling newSlimeling = new EntitySlimeling(this.worldObj, (float) newColor.x, (float) newColor.y, (float) newColor.z);
+            EntitySlimeling newSlimeling = new EntitySlimeling(this.world, (float) newColor.x, (float) newColor.y, (float) newColor.z);
 
             UUID s = this.getOwnerId();
 
@@ -630,7 +629,6 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
         this.dataManager.set(COLOR_BLUE, color);
     }
 
-    @Override
     public int getAge()
     {
         return this.dataManager.get(AGE);
@@ -703,7 +701,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
     {
         super.onDeath(p_70645_1_);
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             ItemStack bag = this.slimelingInventory.getStackInSlot(1);
             if (bag != null && bag.getItem() == MarsItems.marsItemBasic && bag.getItemDamage() == 4)
@@ -743,7 +741,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
                 if (e instanceof EntityLivingBase)
                 {
                     EntityLivingBase living = (EntityLivingBase) e;
-                    return living == null ? true : (this.theEntity.getDistanceSqToEntity(living) < 144.0D && living.getAITarget() != null ? false : this.isSitting);
+                    return living == null ? true : (this.theEntity.getDistanceSq(living) < 144.0D && living.getRevengeTarget() != null ? false : this.isSitting);
                 }
                 return false;
             }
@@ -752,7 +750,7 @@ public class EntitySlimeling extends EntityTameable implements IEntityBreathable
         @Override
         public void startExecuting()
         {
-            this.theEntity.getNavigator().clearPathEntity();
+            this.theEntity.getNavigator().clearPath();
             this.theEntity.setSitting(true);
         }
 

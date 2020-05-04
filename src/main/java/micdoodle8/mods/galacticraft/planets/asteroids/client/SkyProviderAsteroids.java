@@ -10,7 +10,7 @@ import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.VertexBuffer;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
@@ -46,7 +46,7 @@ public class SkyProviderAsteroids extends IRenderHandler
         GL11.glEndList();
         GL11.glPopMatrix();
         final Tessellator tessellator = Tessellator.getInstance();
-        VertexBuffer worldRenderer = tessellator.getBuffer();
+        BufferBuilder worldRenderer = tessellator.getBuffer();
         this.glSkyList = this.starGLCallList + 1;
         GL11.glNewList(this.glSkyList, GL11.GL_COMPILE);
         final byte byte2 = 64;
@@ -94,7 +94,7 @@ public class SkyProviderAsteroids extends IRenderHandler
         float var11;
         float var12;
         final Tessellator var23 = Tessellator.getInstance();
-        VertexBuffer worldRenderer = var23.getBuffer();
+        BufferBuilder worldRenderer = var23.getBuffer();
 
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GlStateManager.disableRescaleNormal();
@@ -168,7 +168,7 @@ public class SkyProviderAsteroids extends IRenderHandler
 
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glColor3f(0.0F, 0.0F, 0.0F);
-        final double var25 = mc.thePlayer.getPosition().getY() - world.getHorizon();
+        final double var25 = mc.player.getPosition().getY() - world.getHorizon();
 
         //		if (var25 < 0.0D)
         //		{
@@ -223,7 +223,7 @@ public class SkyProviderAsteroids extends IRenderHandler
     {
         final Random var1 = new Random(10842L);
         final Tessellator var2 = Tessellator.getInstance();
-        VertexBuffer worldRenderer = var2.getBuffer();
+        BufferBuilder worldRenderer = var2.getBuffer();
         worldRenderer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
 
         for (int var3 = 0; var3 < (ConfigManagerCore.moreStars ? 35000 : 6000); ++var3)
@@ -278,7 +278,7 @@ public class SkyProviderAsteroids extends IRenderHandler
 
     public float getSkyBrightness(float par1)
     {
-        final float var2 = FMLClientHandler.instance().getClient().theWorld.getCelestialAngle(par1);
+        final float var2 = FMLClientHandler.instance().getClient().world.getCelestialAngle(par1);
         float var3 = 1.0F - (MathHelper.sin(var2 * Constants.twoPI) * 2.0F + 0.25F);
 
         if (var3 < 0.0F)

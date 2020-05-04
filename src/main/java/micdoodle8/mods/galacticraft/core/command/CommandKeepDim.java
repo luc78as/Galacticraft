@@ -13,9 +13,9 @@ import net.minecraft.util.text.TextComponentString;
 public class CommandKeepDim extends CommandBase
 {
     @Override
-    public String getCommandUsage(ICommandSender var1)
+    public String getUsage(ICommandSender var1)
     {
-        return "/" + this.getCommandName() + " <dimension id>";
+        return "/" + this.getName() + " <dimension id>";
     }
 
     @Override
@@ -25,7 +25,7 @@ public class CommandKeepDim extends CommandBase
     }
 
     @Override
-    public String getCommandName()
+    public String getName()
     {
         return "gckeeploaded";
     }
@@ -37,7 +37,7 @@ public class CommandKeepDim extends CommandBase
 
         if (args.length > 1)
         {
-            throw new WrongUsageException("Too many command arguments! Usage: " + this.getCommandUsage(sender), new Object[0]);
+            throw new WrongUsageException("Too many command arguments! Usage: " + this.getUsage(sender), new Object[0]);
         }
         else
         {
@@ -61,23 +61,23 @@ public class CommandKeepDim extends CommandBase
                         }
                         catch (Exception e)
                         {
-                            throw new WrongUsageException("Needs a dimension number! Usage: " + this.getCommandUsage(sender), new Object[0]);
+                            throw new WrongUsageException("Needs a dimension number! Usage: " + this.getUsage(sender), new Object[0]);
                         }
                     }
 
                     if (ConfigManagerCore.setLoaded(dimID))
                     {
-                        playerBase.addChatMessage(new TextComponentString("[GCKeepLoaded] Successfully set dimension " + dimID + " to load staticly"));
+                        playerBase.sendMessage(new TextComponentString("[GCKeepLoaded] Successfully set dimension " + dimID + " to load staticly"));
                     }
                     else
                     {
                         if (ConfigManagerCore.setUnloaded(dimID))
                         {
-                            playerBase.addChatMessage(new TextComponentString("[GCKeepLoaded] Successfully set dimension " + dimID + " to not load staticly"));
+                            playerBase.sendMessage(new TextComponentString("[GCKeepLoaded] Successfully set dimension " + dimID + " to not load staticly"));
                         }
                         else
                         {
-                            playerBase.addChatMessage(new TextComponentString("[GCKeepLoaded] Failed to set dimension as not static"));
+                            playerBase.sendMessage(new TextComponentString("[GCKeepLoaded] Failed to set dimension as not static"));
                         }
                     }
                 }

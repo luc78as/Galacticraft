@@ -12,6 +12,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
@@ -22,6 +23,7 @@ import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -66,6 +68,12 @@ public class BlockFallenMeteor extends Block implements ITileEntityProvider, ISh
     public boolean isFullCube(IBlockState state)
     {
         return false;
+    }
+
+    @Override
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face)
+    {
+        return BlockFaceShape.UNDEFINED;
     }
 
     @Override
@@ -142,7 +150,7 @@ public class BlockFallenMeteor extends Block implements ITileEntityProvider, ISh
     }
 
     @Override
-    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn)
+    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
     {
         worldIn.scheduleUpdate(pos, this, this.tickRate(worldIn));
     }
@@ -251,12 +259,12 @@ public class BlockFallenMeteor extends Block implements ITileEntityProvider, ISh
     {
         ItemStack stack = player.inventory.getCurrentItem();
         String tool = block.getHarvestTool(state);
-        if (stack == null || tool == null)
+        if (stack.isEmpty() || tool == null)
         {
             return player.canHarvestBlock(state) ? 1 : 0;
         }
 
-        int toolLevel = stack.getItem().getHarvestLevel(stack, tool) - block.getHarvestLevel(state) + 1;
+        int toolLevel = stack.getItem().getHarvestLevel(stack, tool, player, state) - block.getHarvestLevel(state) + 1;
         if (toolLevel < 1)
         {
             return player.canHarvestBlock(state) ? 1 : 0;
@@ -289,6 +297,6 @@ public class BlockFallenMeteor extends Block implements ITileEntityProvider, ISh
         if (state.getBlock() != this) return 0;
         
         Random rand = world instanceof World ? ((World)world).rand : new Random();
-        return MathHelper.getRandomIntegerInRange(rand, 3, 7);
+        return MathHelper.getInt(rand, 3, 7);
     }
 }

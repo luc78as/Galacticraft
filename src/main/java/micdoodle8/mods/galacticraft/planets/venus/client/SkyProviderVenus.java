@@ -46,7 +46,7 @@ public class SkyProviderVenus extends IRenderHandler
         GL11.glPopMatrix();
 
         final Tessellator tessellator = Tessellator.getInstance();
-        VertexBuffer worldRenderer = tessellator.getBuffer();
+        BufferBuilder worldRenderer = tessellator.getBuffer();
         GL11.glNewList(this.glSkyList, GL11.GL_COMPILE);
         final byte byte2 = 64;
         final int i = 256 / byte2 + 2;
@@ -91,9 +91,9 @@ public class SkyProviderVenus extends IRenderHandler
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GlStateManager.disableRescaleNormal();
         Vec3d vec3 = world.getSkyColor(mc.getRenderViewEntity(), partialTicks);
-        float f1 = (float) vec3.xCoord;
-        float f2 = (float) vec3.yCoord;
-        float f3 = (float) vec3.zCoord;
+        float f1 = (float) vec3.x;
+        float f2 = (float) vec3.y;
+        float f3 = (float) vec3.z;
         float f6;
 
         if (mc.gameSettings.anaglyph)
@@ -108,7 +108,7 @@ public class SkyProviderVenus extends IRenderHandler
 
         GL11.glColor3f(f1, f2, f3);
         Tessellator tessellator1 = Tessellator.getInstance();
-        VertexBuffer worldRenderer1 = tessellator1.getBuffer();
+        BufferBuilder worldRenderer1 = tessellator1.getBuffer();
         GL11.glDepthMask(false);
         GL11.glEnable(GL11.GL_FOG);
         GL11.glColor3f(f1, f2, f3);
@@ -269,7 +269,7 @@ public class SkyProviderVenus extends IRenderHandler
         GL11.glPopMatrix();
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glColor3f(0.0F, 0.0F, 0.0F);
-        double d0 = mc.thePlayer.getPosition().getY() - world.getHorizon();
+        double d0 = mc.player.getPosition().getY() - world.getHorizon();
 
         if (d0 < 0.0D)
         {
@@ -330,7 +330,7 @@ public class SkyProviderVenus extends IRenderHandler
     {
         final Random rand = new Random(10842L);
         final Tessellator var2 = Tessellator.getInstance();
-        VertexBuffer worldRenderer = var2.getBuffer();
+        BufferBuilder worldRenderer = var2.getBuffer();
         worldRenderer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
 
         for (int starIndex = 0; starIndex < (ConfigManagerCore.moreStars ? 35000 : 6000); ++starIndex)
@@ -386,7 +386,7 @@ public class SkyProviderVenus extends IRenderHandler
 
     public float getSkyBrightness(float par1)
     {
-        final float var2 = FMLClientHandler.instance().getClient().theWorld.getCelestialAngle(par1);
+        final float var2 = FMLClientHandler.instance().getClient().world.getCelestialAngle(par1);
         float var3 = 1.0F - (MathHelper.sin(var2 * Constants.twoPI) * 2.0F + 0.25F);
 
         if (var3 < 0.0F)

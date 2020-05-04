@@ -44,7 +44,7 @@ public class PlayerUtil
             }
             else
             {
-                Iterator iterator = server.getPlayerList().getPlayerList().iterator();
+                Iterator iterator = server.getPlayerList().getPlayers().iterator();
                 EntityPlayerMP entityplayermp;
 
                 do
@@ -165,13 +165,13 @@ public class PlayerUtil
     
     public static List<EntityPlayerMP> getPlayersOnline()
     {
-        return GCCoreUtil.getServer().getPlayerList().getPlayerList();
+        return GCCoreUtil.getServer().getPlayerList().getPlayers();
     }
 
 
     public static boolean isPlayerOnline(EntityPlayerMP player)
     {
-        return getPlayersOnline().contains(player);
+        return player.mcServer.getPlayerList().getPlayers().contains(player);
     }
     
     public static String getName(EntityPlayer player)

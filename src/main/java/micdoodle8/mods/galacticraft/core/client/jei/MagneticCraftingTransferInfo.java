@@ -46,4 +46,9 @@ public class MagneticCraftingTransferInfo implements IRecipeTransferInfo<Contain
         return slots;
     }
 
+    @Override
+    public boolean canHandle(ContainerCrafting container)
+    {
+        return true;
+    }
 }

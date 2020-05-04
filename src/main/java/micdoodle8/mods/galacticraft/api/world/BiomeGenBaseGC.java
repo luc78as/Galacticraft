@@ -2,6 +2,7 @@ package micdoodle8.mods.galacticraft.api.world;
 
 import java.util.LinkedList;
 
+import micdoodle8.mods.galacticraft.core.GalacticraftCore;
 import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.passive.EntityAmbientCreature;
 import net.minecraft.entity.passive.EntityWaterMob;
@@ -13,11 +14,33 @@ import net.minecraft.world.biome.Biome;
  */
 public abstract class BiomeGenBaseGC extends Biome implements IMobSpawnBiome
 {
+    public final boolean isAdaptiveBiome;
+    
     protected BiomeGenBaseGC(BiomeProperties var1)
     {
         super(var1);
+        this.setRegistryName(var1.biomeName);
+        GalacticraftCore.biomesList.add(this);
+        this.isAdaptiveBiome = false;
     }
 
+    protected BiomeGenBaseGC(BiomeProperties properties, boolean adaptive)
+    {
+        super(properties);
+        this.setRegistryName(properties.biomeName);
+        this.isAdaptiveBiome = adaptive;
+    }
+
+    /**
+     * Override this in your biomes
+     * <br>
+     * (Note: if adaptive biomes, only the FIRST to register the adaptive biome will have its
+     * types registered in the BiomeDictionary - sorry, that's a Forge limitation.)
+     */
+    public void registerTypes(Biome registering)
+    {
+    }
+    
     /**
      * The default implementation in BiomeGenBaseGC will attempt to allocate each
      * SpawnListEntry in the CelestialBody's mobInfo to this biome's 

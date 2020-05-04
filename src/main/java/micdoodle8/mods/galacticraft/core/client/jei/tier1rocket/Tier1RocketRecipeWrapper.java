@@ -2,17 +2,13 @@ package micdoodle8.mods.galacticraft.core.client.jei.tier1rocket;
 
 import javax.annotation.Nonnull;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import mezz.jei.api.ingredients.IIngredients;
-import mezz.jei.api.recipe.BlankRecipeWrapper;
-import mezz.jei.api.recipe.wrapper.ICraftingRecipeWrapper;
+import mezz.jei.api.recipe.IRecipeWrapper;
 import micdoodle8.mods.galacticraft.api.recipe.INasaWorkbenchRecipe;
 import net.minecraft.item.ItemStack;
 
-public class Tier1RocketRecipeWrapper extends BlankRecipeWrapper implements ICraftingRecipeWrapper
+public class Tier1RocketRecipeWrapper implements IRecipeWrapper
 {
     @Nonnull
     private final INasaWorkbenchRecipe recipe;
@@ -22,25 +18,10 @@ public class Tier1RocketRecipeWrapper extends BlankRecipeWrapper implements ICra
         this.recipe = recipe;
     }
 
-    @Nonnull
-    @Override
-    public List getInputs()
-    {
-        List<ItemStack> list = new ArrayList<>();
-        list.addAll(recipe.getRecipeInput().values());
-        return list;
-    }
-
-	@Nonnull
-	@Override
-	public List<ItemStack> getOutputs() {
-		return Collections.singletonList(recipe.getRecipeOutput());
-	}
-
     @Override
     public void getIngredients(IIngredients ingredients)
     {
-        ingredients.setInputs(ItemStack.class, this.getInputs());
+        ingredients.setInputs(ItemStack.class, Lists.newArrayList(recipe.getRecipeInput().values()));
         ingredients.setOutput(ItemStack.class, this.recipe.getRecipeOutput());
     }
 }

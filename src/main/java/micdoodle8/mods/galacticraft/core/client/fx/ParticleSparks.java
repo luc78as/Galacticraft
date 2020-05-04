@@ -1,7 +1,7 @@
 package micdoodle8.mods.galacticraft.core.client.fx;
 
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.renderer.VertexBuffer;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
 
@@ -30,7 +30,7 @@ public class ParticleSparks extends Particle
     }
 
     @Override
-    public void renderParticle(VertexBuffer worldRendererIn, Entity entityIn, float partialTicks, float rotationX, float rotationZ, float rotationYZ, float rotationXY, float rotationXZ)
+    public void renderParticle(BufferBuilder worldRendererIn, Entity entityIn, float partialTicks, float rotationX, float rotationZ, float rotationYZ, float rotationXY, float rotationXZ)
     {
         float var8 = (this.particleAge + partialTicks) / this.particleMaxAge * 32.0F;
 
@@ -61,7 +61,7 @@ public class ParticleSparks extends Particle
         }
 
         this.setParticleTextureIndex(7 - this.particleAge * 8 / this.particleMaxAge);
-        this.moveEntity(this.motionX, this.motionY, this.motionZ);
+        this.move(this.motionX, this.motionY, this.motionZ);
 
         if (this.posY == this.prevPosY)
         {
@@ -71,7 +71,7 @@ public class ParticleSparks extends Particle
 
         this.setParticleTextureIndex(160 + 7 - this.particleAge * 8 / this.particleMaxAge);
         this.motionY -= 0.01D;
-        this.moveEntity(this.motionX, this.motionY, this.motionZ);
+        this.move(this.motionX, this.motionY, this.motionZ);
         this.motionX *= 0.9100000262260437D;
         this.motionY *= 0.9100000262260437D;
         this.motionZ *= 0.9100000262260437D;

@@ -20,7 +20,7 @@ public class GuiSchematicBuggy extends GuiPositionedContainer implements ISchema
 
     public GuiSchematicBuggy(InventoryPlayer par1InventoryPlayer, BlockPos pos)
     {
-        super(new ContainerBuggyBench(par1InventoryPlayer, pos, FMLClientHandler.instance().getClient().thePlayer), pos);
+        super(new ContainerBuggyBench(par1InventoryPlayer, pos, FMLClientHandler.instance().getClient().player), pos);
         this.ySize = 221;
     }
 
@@ -53,8 +53,8 @@ public class GuiSchematicBuggy extends GuiPositionedContainer implements ISchema
     @Override
     protected void drawGuiContainerForegroundLayer(int par1, int par2)
     {
-        this.fontRendererObj.drawString(GCCoreUtil.translate("schematic.moonbuggy.name"), 7, -20 + 27, 4210752);
-        this.fontRendererObj.drawString(GCCoreUtil.translate("container.inventory"), 8, 202 - 104 + 2 + 27, 4210752);
+        this.fontRenderer.drawString(GCCoreUtil.translate("schematic.moonbuggy.name"), 7, -20 + 27, 4210752);
+        this.fontRenderer.drawString(GCCoreUtil.translate("container.inventory"), 8, 202 - 104 + 2 + 27, 4210752);
     }
 
     @Override

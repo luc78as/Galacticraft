@@ -98,7 +98,7 @@ public class RenderEntryPodVenus extends Render<EntityEntryPodVenus>
             GlStateManager.rotate(entityEntryPod.ticksExisted * 5.0F, 0.0F, 1.0F, 0.0F);
             ClientUtil.drawBakedModelColored(modelFlame, color);
 
-            GlStateManager.cullFace(GL11.GL_BACK);
+            GlStateManager.cullFace(GlStateManager.CullFace.BACK);
             GlStateManager.enableCull();
             GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             RenderHelper.enableStandardItemLighting();
@@ -124,7 +124,7 @@ public class RenderEntryPodVenus extends Render<EntityEntryPodVenus>
     @Override
     public boolean shouldRender(EntityEntryPodVenus lander, ICamera camera, double camX, double camY, double camZ)
     {
-        AxisAlignedBB axisalignedbb = lander.getEntityBoundingBox().expand(1D, 2D, 1D);
+        AxisAlignedBB axisalignedbb = lander.getEntityBoundingBox().grow(1D, 2D, 1D);
         return lander.isInRangeToRender3d(camX, camY, camZ) && camera.isBoundingBoxInFrustum(axisalignedbb);
     }
 }

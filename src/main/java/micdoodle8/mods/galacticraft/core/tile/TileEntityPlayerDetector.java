@@ -17,11 +17,11 @@ public class TileEntityPlayerDetector extends TileEntity implements ITickable
     @Override
     public void update()
     {
-        if (!this.worldObj.isRemote && ++this.ticks >= 25) 
+        if (!this.world.isRemote && ++this.ticks >= 25) 
         {
             this.ticks = 0;
             int facing = 0;
-            IBlockState state = this.worldObj.getBlockState(this.pos);
+            IBlockState state = this.world.getBlockState(this.pos);
             if (state.getBlock() == GCBlocks.concealedDetector)
             {
                 facing = state.getValue(BlockConcealedDetector.FACING);
@@ -46,10 +46,10 @@ public class TileEntityPlayerDetector extends TileEntity implements ITickable
             case 3:
                 this.playerSearch = new AxisAlignedBB(x - range - hysteresis, y - 6 - hysteresis, z - range / 2 + 0.5D - hysteresis, x + hysteresis, y + 2 + hysteresis, z + range / 2 + 0.5D + hysteresis);
             }
-            result = !this.worldObj.getEntitiesWithinAABB(EntityPlayer.class, playerSearch).isEmpty();
+            result = !this.world.getEntitiesWithinAABB(EntityPlayer.class, playerSearch).isEmpty();
             if (this.getBlockType() instanceof BlockConcealedDetector)
             {
-                ((BlockConcealedDetector) this.blockType).updateState(this.worldObj, this.getPos(), result);
+                ((BlockConcealedDetector) this.blockType).updateState(this.world, this.getPos(), result);
             }
         }
     }

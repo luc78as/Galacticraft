@@ -20,6 +20,7 @@ import net.minecraft.inventory.IInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.launchwrapper.Launch;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.text.translation.I18n;
@@ -88,7 +89,7 @@ public class GCCoreUtil
         player.getNextWindowId();
         player.closeContainer();
         int id = player.currentWindowId;
-        GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_OPEN_PARACHEST_GUI, GCCoreUtil.getDimensionID(player.worldObj), new Object[] { id, 0, 0 }), player);
+        GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_OPEN_PARACHEST_GUI, GCCoreUtil.getDimensionID(player.world), new Object[] { id, 0, 0 }), player);
         player.openContainer = new ContainerBuggy(player.inventory, buggyInv, type, player);
         player.openContainer.windowId = id;
         player.openContainer.addListener(player);
@@ -99,7 +100,7 @@ public class GCCoreUtil
         player.getNextWindowId();
         player.closeContainer();
         int windowId = player.currentWindowId;
-        GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_OPEN_PARACHEST_GUI, GCCoreUtil.getDimensionID(player.worldObj), new Object[] { windowId, 1, landerInv.getEntityId() }), player);
+        GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_OPEN_PARACHEST_GUI, GCCoreUtil.getDimensionID(player.world), new Object[] { windowId, 1, landerInv.getEntityId() }), player);
         player.openContainer = new ContainerParaChest(player.inventory, landerInv, player);
         player.openContainer.windowId = windowId;
         player.openContainer.addListener(player);
@@ -117,10 +118,9 @@ public class GCCoreUtil
         int nextEggID = getNextValidID();
         if (nextEggID < 65536)
         {
-            name = Constants.MOD_ID_CORE + "." + name;
-            EntityList.ID_TO_CLASS.put(nextEggID, clazz);
-            EntityList.CLASS_TO_ID.put(clazz, nextEggID);
-            EntityList.ENTITY_EGGS.put(name, new EntityList.EntityEggInfo(name, back, fore));
+            ResourceLocation resourcelocation = new ResourceLocation(Constants.MOD_ID_CORE, name);
+//            name = Constants.MOD_ID_CORE + "." + name;
+            EntityList.ENTITY_EGGS.put(resourcelocation, new EntityList.EntityEggInfo(resourcelocation, back, fore));
         }
     }
 
@@ -135,44 +135,35 @@ public class GCCoreUtil
         {
             eggID++;
         }
-        while (EntityList.getClassFromID(eggID) != null);
+        while (net.minecraftforge.registries.GameData.getEntityRegistry().getValue(eggID) != null);
 
         return eggID;
     }
 
     public static void registerGalacticraftNonMobEntity(Class<? extends Entity> var0, String var1, int trackingDistance, int updateFreq, boolean sendVel)
     {
-        EntityRegistry.registerModEntity(var0, var1, nextInternalID(), GalacticraftCore.instance, trackingDistance, updateFreq, sendVel);
+        ResourceLocation registryName = new ResourceLocation(Constants.MOD_ID_CORE, var1);
+        EntityRegistry.registerModEntity(registryName, var0, var1, nextInternalID(), GalacticraftCore.instance, trackingDistance, updateFreq, sendVel);
     }
 
     public static void registerGalacticraftItem(String key, Item item)
     {
-        GalacticraftCore.itemList.put(key, new ItemStack(item));
+        registerGalacticraftItem(key, new ItemStack(item));
     }
 
     public static void registerGalacticraftItem(String key, Item item, int metadata)
     {
-        GalacticraftCore.itemList.put(key, new ItemStack(item, 1, metadata));
+        registerGalacticraftItem(key, new ItemStack(item, 1, metadata));
     }
 
     public static void registerGalacticraftItem(String key, ItemStack stack)
     {
-        GalacticraftCore.itemList.put(key, stack);
+        GalacticraftCore.itemList.add(stack);
     }
 
     public static void registerGalacticraftBlock(String key, Block block)
     {
-        GalacticraftCore.blocksList.put(key, new ItemStack(block));
-    }
-
-    public static void registerGalacticraftBlock(String key, Block block, int metadata)
-    {
-        GalacticraftCore.blocksList.put(key, new ItemStack(block, 1, metadata));
-    }
-
-    public static void registerGalacticraftBlock(String key, ItemStack stack)
-    {
-        GalacticraftCore.blocksList.put(key, stack);
+        GalacticraftCore.blocksList.add(block);
     }
 
     public static String translate(String key)
@@ -328,7 +319,7 @@ public class GCCoreUtil
         MinecraftServer server = getServer();
         if (server != null)
         {
-            return server.worldServers;
+            return server.worlds;
         }
         return new WorldServer[0];
     }
@@ -337,7 +328,7 @@ public class GCCoreUtil
     {
         if (world instanceof WorldServer)
         {
-            return ((WorldServer)world).getMinecraftServer().worldServers;
+            return ((WorldServer)world).getMinecraftServer().worlds;
         }
         return GCCoreUtil.getWorldServerList();
     }
@@ -373,70 +364,6 @@ public class GCCoreUtil
         }
     }
 
-//    public static void sortBlock(Block block, int meta, StackSorted beforeStack)
-//    {
-//        StackSorted newStack = new StackSorted(Item.getItemFromBlock(block), meta);
-//
-//        // Remove duplicates
-//        for (Iterator<StackSorted> it = GalacticraftCore.itemOrderListBlocks.iterator(); it.hasNext();)
-//        {
-//            StackSorted stack = it.next();
-//            if (stack.equals(newStack))
-//            {
-//                it.remove();
-//            }
-//        }
-//
-//        if (beforeStack == null)
-//        {
-//            GalacticraftCore.itemOrderListBlocks.add(newStack);
-//        }
-//        else
-//        {
-//            for (int i = 0; i < GalacticraftCore.itemOrderListBlocks.size(); ++i)
-//            {
-//                if (GalacticraftCore.itemOrderListBlocks.get(i).equals(beforeStack))
-//                {
-//                    GalacticraftCore.itemOrderListBlocks.add(i + 1, newStack);
-//                    return;
-//                }
-//            }
-//
-//            throw new RuntimeException("Could not find block to insert before: " + beforeStack);
-//        }
-//    }
-//
-//    public static void sortItem(Item item, int meta, StackSorted beforeStack)
-//    {
-//        StackSorted newStack = new StackSorted(item, meta);
-//
-//        // Remove duplicates
-//        for (Iterator<StackSorted> it = GalacticraftCore.itemOrderListBlocks.iterator(); it.hasNext();)
-//        {
-//            StackSorted stack = it.next();
-//            if (stack.equals(newStack))
-//            {
-//                it.remove();
-//            }
-//        }
-//
-//        if (beforeStack == null)
-//        {
-//            GalacticraftCore.itemOrderListItems.add(newStack);
-//        }
-//        else
-//        {
-//            for (int i = 0; i < GalacticraftCore.itemOrderListItems.size(); ++i)
-//            {
-//                if (GalacticraftCore.itemOrderListItems.get(i).equals(beforeStack))
-//                {
-//                    GalacticraftCore.itemOrderListItems.add(i + 1, newStack);
-//                    break;
-//                }
-//            }
-//        }
-//    }
-    
     /**
      * Call this to obtain a seeded random which will be the SAME on
      * client and server.  This means EntityItems won't jump position, for example.
@@ -488,7 +415,7 @@ public class GCCoreUtil
         {
             return stack;
         }
-        stack = player.inventory.offHandInventory[0];
+        stack = player.inventory.offHandInventory.get(0);
         if (stack != null && stack.getItem() == item)
         {
             return stack;
@@ -556,18 +483,17 @@ public class GCCoreUtil
     
     public static void spawnItem(World world, BlockPos pos, ItemStack stack)
     {
-        int spawnCount = stack.stackSize;
-        for (int i = 0; i < spawnCount; i++)
+        float var = 0.7F;
+        while (!stack.isEmpty())
         {
-            float var = 0.7F;
-            double dx = world.rand.nextFloat() * var + (1.0F - var) * 0.5D;
-            double dy = world.rand.nextFloat() * var + (1.0F - var) * 0.5D;
-            double dz = world.rand.nextFloat() * var + (1.0F - var) * 0.5D;
-            EntityItem entityitem = new EntityItem(world, pos.getX() + dx, pos.getY() + dy, pos.getZ() + dz, new ItemStack(stack.getItem(), 1, stack.getItemDamage()));
-    
-            entityitem.setPickupDelay(10);
-    
-            world.spawnEntityInWorld(entityitem);
+	        double dx = world.rand.nextFloat() * var + (1.0F - var) * 0.5D;
+	        double dy = world.rand.nextFloat() * var + (1.0F - var) * 0.5D;
+	        double dz = world.rand.nextFloat() * var + (1.0F - var) * 0.5D;
+	        EntityItem entityitem = new EntityItem(world, pos.getX() + dx, pos.getY() + dy, pos.getZ() + dz, stack.splitStack(world.rand.nextInt(21) + 10));
+	
+	        entityitem.setPickupDelay(10);
+	
+	        world.spawnEntity(entityitem);
         }
     }
 

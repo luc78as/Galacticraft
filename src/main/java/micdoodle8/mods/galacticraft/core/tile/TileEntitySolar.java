@@ -22,11 +22,12 @@ import micdoodle8.mods.miccore.Annotations.NetworkedField;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.ISidedInventory;
+import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -50,7 +51,6 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
     public boolean disabled = false;
     @NetworkedField(targetSide = Side.CLIENT)
     public int disableCooldown = 0;
-    private ItemStack[] containingItems = new ItemStack[1];
     public static final int MAX_GENERATE_WATTS = 200;
     @NetworkedField(targetSide = Side.CLIENT)
     public int generateWatts = 0;
@@ -69,6 +69,7 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
      */
     public TileEntitySolar(int tier)
     {
+        super(tier == 1 ? "container.solarbasic.name" : "container.solaradvanced.name");
         this.storage.setMaxExtract(TileEntitySolar.MAX_GENERATE_WATTS);
         this.storage.setMaxReceive(TileEntitySolar.MAX_GENERATE_WATTS);
         if (tier == 2)
@@ -77,6 +78,7 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
         }
         this.setTierGC(tier);
         this.initialised = true;
+        this.inventory = NonNullList.withSize(1, ItemStack.EMPTY);
     }
 
     @Override
@@ -95,19 +97,19 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
         
         if (!this.initialisedMulti)
         {
-            this.initialisedMulti = this.initialiseMultiTiles(this.getPos(), this.worldObj);
+            this.initialisedMulti = this.initialiseMultiTiles(this.getPos(), this.world);
         }
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             this.receiveEnergyGC(null, this.generateWatts, false);
         }
 
         super.update();
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
-            this.recharge(this.containingItems[0]);
+            this.recharge(this.getInventory().get(0));
 
             if (this.disableCooldown > 0)
             {
@@ -118,7 +120,7 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
             {
                 this.solarStrength = 0;
 
-                if (this.worldObj.isDaytime() && (this.worldObj.provider instanceof IGalacticraftWorldProvider || !this.worldObj.isRaining() && !this.worldObj.isThundering()))
+                if (this.world.isDaytime() && (this.world.provider instanceof IGalacticraftWorldProvider || !this.world.isRaining() && !this.world.isThundering()))
                 {
                     double distance = 100.0D;
                     double sinA = -Math.sin((this.currentAngle - 77.5D) / Constants.RADIANS_TO_DEGREES_D);
@@ -130,13 +132,13 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
                         {
                             if (this.tierGC == 1)
                             {
-                                if (this.worldObj.canBlockSeeSky(this.getPos().add(x, 2, z)))
+                                if (this.world.canBlockSeeSky(this.getPos().add(x, 2, z)))
                                 {
                                     boolean valid = true;
 
                                     for (int y = this.getPos().getY() + 3; y < 256; y++)
                                     {
-                                        IBlockState state = this.worldObj.getBlockState(new BlockPos(this.getPos().getX() + x, y, this.getPos().getZ() + z));
+                                        IBlockState state = this.world.getBlockState(new BlockPos(this.getPos().getX() + x, y, this.getPos().getZ() + z));
 
                                         if (state.getBlock().isOpaqueCube(state))
                                         {
@@ -159,7 +161,7 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
                                 for (double d = 0.0D; d < distance; d++)
                                 {
                                     BlockVec3 blockAt = blockVec.clone().translate((int) (d * sinA), (int) (d * cosA), 0);
-                                    IBlockState state = blockAt.getBlockState(this.worldObj);
+                                    IBlockState state = blockAt.getBlockState(this.world);
                                     
                                     if (state == null)
                                     {
@@ -184,16 +186,16 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
             }
         }
 
-        float angle = this.worldObj.getCelestialAngle(1.0F) - 0.7845194F < 0 ? 1.0F - 0.7845194F : -0.7845194F;
-        float celestialAngle = (this.worldObj.getCelestialAngle(1.0F) + angle) * 360.0F;
-        if (!(this.worldObj.provider instanceof WorldProviderSpaceStation)) celestialAngle += 12.5F;
-        if (GalacticraftCore.isPlanetsLoaded && this.worldObj.provider instanceof WorldProviderVenus) celestialAngle = 180F - celestialAngle;
+        float angle = this.world.getCelestialAngle(1.0F) - 0.7845194F < 0 ? 1.0F - 0.7845194F : -0.7845194F;
+        float celestialAngle = (this.world.getCelestialAngle(1.0F) + angle) * 360.0F;
+        if (!(this.world.provider instanceof WorldProviderSpaceStation)) celestialAngle += 12.5F;
+        if (GalacticraftCore.isPlanetsLoaded && this.world.provider instanceof WorldProviderVenus) celestialAngle = 180F - celestialAngle;
         celestialAngle %= 360;
-        boolean isDaytime = this.worldObj.isDaytime() && (celestialAngle < 180.5F || celestialAngle > 359.5F) || this.worldObj.provider instanceof WorldProviderSpaceStation;
+        boolean isDaytime = this.world.isDaytime() && (celestialAngle < 180.5F || celestialAngle > 359.5F) || this.world.provider instanceof WorldProviderSpaceStation;
 
         if (this.tierGC == 1)
         {
-            if (!isDaytime || this.worldObj.isRaining() || this.worldObj.isThundering())
+            if (!isDaytime || this.world.isRaining() || this.world.isThundering())
             {
                 this.targetAngle = 77.5F + 180.0F;
             }
@@ -204,7 +206,7 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
         }
         else
         {
-            if (!isDaytime || this.worldObj.isRaining() || this.worldObj.isThundering())
+            if (!isDaytime || this.world.isRaining() || this.world.isThundering())
             {
                 this.targetAngle = 77.5F + 180F;
             }
@@ -228,7 +230,7 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
 
         this.currentAngle += difference / 20.0F;
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             int generated = this.getGenerate(); 
             if (generated > 0)
@@ -274,22 +276,22 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
             return 0;
         }
 
-        float angle = this.worldObj.getCelestialAngle(1.0F) - 0.784690560F < 0 ? 1.0F - 0.784690560F : -0.784690560F;
-        float celestialAngle = (this.worldObj.getCelestialAngle(1.0F) + angle) * 360.0F;
-        if (!(this.worldObj.provider instanceof WorldProviderSpaceStation)) celestialAngle += 12.5F;
+        float angle = this.world.getCelestialAngle(1.0F) - 0.784690560F < 0 ? 1.0F - 0.784690560F : -0.784690560F;
+        float celestialAngle = (this.world.getCelestialAngle(1.0F) + angle) * 360.0F;
+        if (!(this.world.provider instanceof WorldProviderSpaceStation)) celestialAngle += 12.5F;
 
-        if (GalacticraftCore.isPlanetsLoaded && this.worldObj.provider instanceof WorldProviderVenus) celestialAngle = 180F - celestialAngle;
+        if (GalacticraftCore.isPlanetsLoaded && this.world.provider instanceof WorldProviderVenus) celestialAngle = 180F - celestialAngle;
         celestialAngle %= 360F;
 
         float difference = (180.0F - Math.abs((this.currentAngle + 12.5F) % 180F - celestialAngle)) / 180.0F;
 
-        return MathHelper.floor_float(0.01F * difference * difference * (this.solarStrength * (Math.abs(difference) * 500.0F)) * this.getSolarBoost());
+        return MathHelper.floor(0.01F * difference * difference * (this.solarStrength * (Math.abs(difference) * 500.0F)) * this.getSolarBoost());
     }
 
     public float getSolarBoost()
     {
-        float result = (float) (this.worldObj.provider instanceof ISolarLevel ? ((ISolarLevel) this.worldObj.provider).getSolarEnergyMultiplier() : 1.0F);
-        if (GalacticraftCore.isPlanetsLoaded && this.worldObj.provider instanceof WorldProviderVenus)
+        float result = (float) (this.world.provider instanceof ISolarLevel ? ((ISolarLevel) this.world.provider).getSolarEnergyMultiplier() : 1.0F);
+        if (GalacticraftCore.isPlanetsLoaded && this.world.provider instanceof WorldProviderVenus)
         {
             if (this.pos.getY() > 90)
             {
@@ -303,7 +305,7 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
     public boolean onActivated(EntityPlayer entityPlayer)
     {
         return false; // TODO
-//        return this.getBlockType().onBlockActivated(this.worldObj, this.getPos(), this.worldObj.getBlockState(getPos()), entityPlayer, EnumFacing.DOWN, this.getPos().getX(), this.getPos().getY(), this.getPos().getZ());
+//        return this.getBlockType().onBlockActivated(this.world, this.getPos(), this.world.getBlockState(getPos()), entityPlayer, EnumFacing.DOWN, this.getPos().getX(), this.getPos().getY(), this.getPos().getZ());
     }
 
 //    @Override
@@ -334,7 +336,7 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
     @Override
     public void getPositions(BlockPos placedPosition, List<BlockPos> positions)
     {
-        int buildHeight = this.worldObj.getHeight() - 1;
+        int buildHeight = this.world.getHeight() - 1;
         int y = placedPosition.getY() + 1; 
         if (y > buildHeight)
         {
@@ -365,24 +367,24 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
 
         for (BlockPos pos : positions)
         {
-            IBlockState stateAt = this.worldObj.getBlockState(pos);
+            IBlockState stateAt = this.world.getBlockState(pos);
 
             if (stateAt.getBlock() == GCBlocks.fakeBlock)
             {
                 EnumBlockMultiType type = (EnumBlockMultiType) stateAt.getValue(BlockMulti.MULTI_TYPE);
                 if ((type == EnumBlockMultiType.SOLAR_PANEL_0 || type == EnumBlockMultiType.SOLAR_PANEL_1))
                 {
-                    if (this.worldObj.isRemote && this.worldObj.rand.nextDouble() < 0.1D)
+                    if (this.world.isRemote && this.world.rand.nextDouble() < 0.1D)
                     {
                         FMLClientHandler.instance().getClient().effectRenderer.addBlockDestroyEffects(pos, GCBlocks.solarPanel.getDefaultState());
                     }
 
-                    this.worldObj.setBlockToAir(pos);
+                    this.world.setBlockToAir(pos);
                 }
             }
         }
 
-        this.worldObj.destroyBlock(getPos(), true);
+        this.world.destroyBlock(getPos(), true);
     }
 
     @Override
@@ -394,20 +396,6 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
         this.targetAngle = nbt.getFloat("targetAngle");
         this.setDisabled(0, nbt.getBoolean("disabled"));
         this.disableCooldown = nbt.getInteger("disabledCooldown");
-
-        final NBTTagList var2 = nbt.getTagList("Items", 10);
-        this.containingItems = new ItemStack[this.getSizeInventory()];
-
-        for (int var3 = 0; var3 < var2.tagCount(); ++var3)
-        {
-            final NBTTagCompound var4 = var2.getCompoundTagAt(var3);
-            final int var5 = var4.getByte("Slot") & 255;
-
-            if (var5 < this.containingItems.length)
-            {
-                this.containingItems[var5] = ItemStack.loadItemStackFromNBT(var4);
-            }
-        }
 
         this.initialised = false;
     }
@@ -422,20 +410,6 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
         nbt.setInteger("disabledCooldown", this.disableCooldown);
         nbt.setBoolean("disabled", this.getDisabled(0));
 
-        final NBTTagList list = new NBTTagList();
-
-        for (int var3 = 0; var3 < this.containingItems.length; ++var3)
-        {
-            if (this.containingItems[var3] != null)
-            {
-                final NBTTagCompound var4 = new NBTTagCompound();
-                var4.setByte("Slot", (byte) var3);
-                this.containingItems[var3].writeToNBT(var4);
-                list.appendTag(var4);
-            }
-        }
-
-        nbt.setTag("Items", list);
         return nbt;
     }
 
@@ -454,7 +428,7 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
 
     public EnumFacing getFront()
     {
-        IBlockState state = this.worldObj.getBlockState(getPos()); 
+        IBlockState state = this.world.getBlockState(getPos()); 
         if (state.getBlock() instanceof BlockSolar)
         {
             return state.getValue(BlockSolar.FACING);
@@ -499,12 +473,6 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
     }
 
     @Override
-    public String getName()
-    {
-        return GCCoreUtil.translate(this.tierGC == 1 ? "container.solarbasic.name" : "container.solaradvanced.name");
-    }
-
-    @Override
     public void setDisabled(int index, boolean disabled)
     {
         if (this.disableCooldown == 0)
@@ -526,96 +494,15 @@ public class TileEntitySolar extends TileBaseUniversalElectricalSource implement
     }
 
     @Override
-    public int getSizeInventory()
-    {
-        return this.containingItems.length;
-    }
-
-    @Override
-    public ItemStack getStackInSlot(int par1)
-    {
-        return this.containingItems[par1];
-    }
-
-    @Override
-    public ItemStack decrStackSize(int par1, int par2)
-    {
-        if (this.containingItems[par1] != null)
-        {
-            ItemStack var3;
-
-            if (this.containingItems[par1].stackSize <= par2)
-            {
-                var3 = this.containingItems[par1];
-                this.containingItems[par1] = null;
-                return var3;
-            }
-            else
-            {
-                var3 = this.containingItems[par1].splitStack(par2);
-
-                if (this.containingItems[par1].stackSize == 0)
-                {
-                    this.containingItems[par1] = null;
-                }
-
-                return var3;
-            }
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    @Override
-    public ItemStack removeStackFromSlot(int par1)
-    {
-        if (this.containingItems[par1] != null)
-        {
-            final ItemStack var2 = this.containingItems[par1];
-            this.containingItems[par1] = null;
-            return var2;
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    @Override
-    public void setInventorySlotContents(int par1, ItemStack par2ItemStack)
-    {
-        this.containingItems[par1] = par2ItemStack;
-
-        if (par2ItemStack != null && par2ItemStack.stackSize > this.getInventoryStackLimit())
-        {
-            par2ItemStack.stackSize = this.getInventoryStackLimit();
-        }
-    }
-
-    @Override
     public int getInventoryStackLimit()
     {
         return 1;
     }
 
     @Override
-    public boolean isUseableByPlayer(EntityPlayer par1EntityPlayer)
-    {
-        return this.worldObj.getTileEntity(this.getPos()) == this && par1EntityPlayer.getDistanceSq(this.getPos().getX() + 0.5D, this.getPos().getY() + 0.5D, this.getPos().getZ() + 0.5D) <= 64.0D;
-    }
-
-    @Override
     public int[] getSlotsForFace(EnumFacing side)
     {
         return new int[] { 0 };
-    }
-
-    @Override
-    public boolean canInsertItem(int slotID, ItemStack itemstack, EnumFacing side)
-    {
-        return this.isItemValidForSlot(slotID, itemstack);
     }
 
     @Override

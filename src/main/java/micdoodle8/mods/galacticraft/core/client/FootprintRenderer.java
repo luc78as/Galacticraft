@@ -8,7 +8,7 @@ import micdoodle8.mods.galacticraft.core.wrappers.Footprint;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.VertexBuffer;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
@@ -30,7 +30,7 @@ public class FootprintRenderer
 
     public static void renderFootprints(EntityPlayer player, float partialTicks)
     {
-        int dimActive = GCCoreUtil.getDimensionID(player.worldObj);
+        int dimActive = GCCoreUtil.getDimensionID(player.world);
         List<Footprint> footprintsToDraw = new LinkedList<>();
 
         for (List<Footprint> footprintList : footprints.values())
@@ -92,7 +92,7 @@ public class FootprintRenderer
             }
 
             float ageScale = footprint.age / (float) Footprint.MAX_AGE;
-            VertexBuffer worldRenderer = tessellator.getBuffer();
+            BufferBuilder worldRenderer = tessellator.getBuffer();
             worldRenderer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
 
             float f11 = (float) (footprint.position.x - interpPosX);
@@ -153,7 +153,7 @@ public class FootprintRenderer
         while (i.hasNext())
         {
             Footprint print = i.next();
-            if (!print.owner.equals(FMLClientHandler.instance().getClient().thePlayer.getName()))
+            if (!print.owner.equals(FMLClientHandler.instance().getClient().player.getName()))
             {
                 i.remove();
             }

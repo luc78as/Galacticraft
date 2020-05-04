@@ -34,7 +34,7 @@ public class ItemGrappleHook extends ItemBow implements ISortableItem
     }
 
     @Override
-    public boolean isItemTool(ItemStack stack)
+    public boolean isEnchantable(ItemStack stack)
     {
         return false;
     }
@@ -88,7 +88,7 @@ public class ItemGrappleHook extends ItemBow implements ISortableItem
 
             if (!worldIn.isRemote)
             {
-                worldIn.spawnEntityInWorld(grapple);
+                worldIn.spawnEntity(grapple);
             }
 
             stack.damageItem(1, player);
@@ -96,9 +96,9 @@ public class ItemGrappleHook extends ItemBow implements ISortableItem
 
             if (!player.capabilities.isCreativeMode)
             {
-                --string.stackSize;
+                string.shrink(1);
 
-                if (string.stackSize == 0)
+                if (string.isEmpty())
                 {
                     player.inventory.deleteStack(string);
                 }
@@ -106,7 +106,7 @@ public class ItemGrappleHook extends ItemBow implements ISortableItem
         }
         else if (worldIn.isRemote)
         {
-            player.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.message.grapple.fail")));
+            player.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.message.grapple.fail")));
         }
     }
 
@@ -123,10 +123,10 @@ public class ItemGrappleHook extends ItemBow implements ISortableItem
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(ItemStack itemStackIn, World worldIn, EntityPlayer playerIn, EnumHand hand)
+    public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer playerIn, EnumHand hand)
     {
         playerIn.setActiveHand(hand);
-        return new ActionResult<>(EnumActionResult.SUCCESS, itemStackIn);
+        return new ActionResult<>(EnumActionResult.SUCCESS, playerIn.getHeldItem(hand));
     }
 
     @Override

@@ -21,7 +21,7 @@ public class BiomeVenus extends BiomeGenBaseGC
 
     BiomeVenus(BiomeProperties properties)
     {
-        super(properties);
+        super(properties, true);
     }
 
     @Override

@@ -2,6 +2,7 @@ package micdoodle8.mods.galacticraft.core.util;
 
 import micdoodle8.mods.galacticraft.core.GCFluids;
 import micdoodle8.mods.galacticraft.core.GCItems;
+import micdoodle8.mods.galacticraft.core.items.ItemBucketGC;
 import micdoodle8.mods.galacticraft.core.items.ItemCanisterGeneric;
 import micdoodle8.mods.galacticraft.planets.asteroids.items.AsteroidsItems;
 import net.minecraft.block.Block;
@@ -9,19 +10,23 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemBucket;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+
+import javax.annotation.Nonnull;
 
 public class FluidUtil
 {
@@ -43,7 +48,12 @@ public class FluidUtil
             return var4.getItem() == GCItems.fuelCanister && var4.getItemDamage() < var4.getMaxDamage();
         }
 
-        FluidStack liquid = FluidUtil.getFluidContained(var4);
+        if (var4.getItem() == GCItems.bucketFuel)
+        {
+        	return true;
+        }
+
+        FluidStack liquid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
         return liquid != null && FluidUtil.testFuel(FluidRegistry.getFluidName(liquid));
     }
 
@@ -56,27 +66,36 @@ public class FluidUtil
      */
     public static boolean testFuel(String name)
     {
+        if (name == null) return false;
+        
+        if (name.equals("fuel") || name.equals("fuelgc")|| name.equals("fuel_light"))
+        {
+            return true;
+        }
+
+        if (name.contains("rocket") && name.contains("fuel"))    //from EnderIO
+        {
+            return true;
+        }
+
+        if (name.equals("rc jet fuel"))    //from RotaryCraft
+        {
+            return true;
+        }
+
         if (name.startsWith("fuel"))
         {
-            return true;
+            return !name.contains("dense") && !name.contains("heavy") && !name.contains("mixed") && !name.contains("gaseous");
         }
 
-        if (name.contains("rocket") && name.contains("fuel"))
-        {
-            return true;
-        }
-
-        if (name.equals("rc jet fuel"))
-        {
-            return true;
-        }
-
-        return false;
+        return name.equals("refined_fuel");    //from Thermal Expansion
     }
     
     public static boolean testOil(String name)
     {
-        if (name.startsWith("oil"))
+        if (name == null) return false;
+
+        if (name.equals("oil") || name.equals("oilgc"))
         {
             return true;
         }
@@ -84,6 +103,11 @@ public class FluidUtil
         if (name.equals("crude_oil"))
         {
             return true;
+        }
+
+        if (name.startsWith("oil"))
+        {
+            return !name.contains("dense") && !name.contains("residue");
         }
 
         return false;
@@ -154,8 +178,13 @@ public class FluidUtil
         {
             return var4.getItem() == GCItems.oilCanister && var4.getItemDamage() < var4.getMaxDamage();
         }
+        
+        if (var4.getItem() == GCItems.bucketOil)
+        {
+        	return true;
+        }
 
-        FluidStack liquid = FluidUtil.getFluidContained(var4);
+        FluidStack liquid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
         return isOil(liquid);
     }
 
@@ -172,7 +201,7 @@ public class FluidUtil
             return var4.getItem() == AsteroidsItems.methaneCanister && var4.getItemDamage() < var4.getMaxDamage();
         }
 
-        FluidStack stack = FluidUtil.getFluidContained(var4);
+        FluidStack stack = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
         return stack != null && stack.getFluid() != null && stack.getFluid().getName().toLowerCase().contains("methane");
     }
 
@@ -189,8 +218,13 @@ public class FluidUtil
         {
             return var4.getItemDamage() == 1;
         }
+        
+        if (var4.getItem() instanceof ItemBucketGC)
+        {
+        	return true;
+        }
 
-        FluidStack liquid = FluidContainerRegistry.getFluidForFilledItem(var4);
+        FluidStack liquid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
         return liquid != null;
     }
 
@@ -198,62 +232,56 @@ public class FluidUtil
      * This tries to fill the given container (at inventory[slot]) with fluid from the specified tank
      * If successful, it places the resulting filled container in inventory[slot]
      * <p>
-     * Note: this deals with the issue where FluidContainerRegistry.fillFluidContainer() returns null for failed fills
-     *
+     * 
      * @param tank         The tank to take the fluid from
      * @param liquid       The type of liquid in that tank (the calling method will normally have checked this already)
      * @param inventory
      * @param slot
      * @param canisterType The type of canister to return, if it's a canister being filled (pre-matched with the liquid type)
      */
-    public static void tryFillContainer(FluidTank tank, FluidStack liquid, ItemStack[] inventory, int slot, Item canisterType)
+    public static void tryFillContainer(FluidTank tank, FluidStack liquid, NonNullList<ItemStack> inventory, int slot, Item canisterType)
     {
-        ItemStack slotItem = inventory[slot];
-        if (liquid.amount <= 0 || slotItem == null)
+        ItemStack slotItem = inventory.get(slot);
+        if (liquid.amount <= 0 || slotItem.isEmpty())
         {
             return;
         }
 
         if (slotItem.getItem() instanceof ItemCanisterGeneric)
         {
-            if (slotItem.stackSize != 1 || slotItem.getItem() != canisterType && slotItem.getItemDamage() != ItemCanisterGeneric.EMPTY)
-            {
-                return;
-            }
+        	if (slotItem.getCount() != 1 || slotItem.getItem() != canisterType && slotItem.getItemDamage() != ItemCanisterGeneric.EMPTY)
+        	{
+        		return;
+        	}
 
-            final int used = Math.min(liquid.amount, slotItem.getItemDamage() - 1);
-            if (used > 0)
-            {
-                inventory[slot] = new ItemStack(canisterType, 1, slotItem.getItemDamage() - used);
-                tank.drain(used, true);
-            }
-            return;
+        	final int used = Math.min(liquid.amount, slotItem.getItemDamage() - 1);
+        	if (used > 0)
+        	{
+        		inventory.set(slot, new ItemStack(canisterType, 1, slotItem.getItemDamage() - used));
+        		tank.drain(used, true);
+        	}
+        	return;
         }
-        else if (slotItem.stackSize == 1)
+        else if (slotItem.getCount() == 1)
         {
-            inventory[slot] = FluidContainerRegistry.fillFluidContainer(liquid, inventory[slot]);
+        	ItemBucketGC bucketGC;
+        	if (slotItem.getItem() == Items.BUCKET && liquid.amount >= Fluid.BUCKET_VOLUME && (bucketGC = ItemBucketGC.getBucketForFluid(liquid.getFluid())) != null)
+        	{
+        		inventory.set(slot, new ItemStack(bucketGC));
+        		tank.drain(Fluid.BUCKET_VOLUME, true);
+        		return;
+        	}
 
-            if (inventory[slot] != null)
-            {
-                int capacity = FluidContainerRegistry.getContainerCapacity(inventory[slot]);
-                tank.drain(capacity, true);
-                return;
-            }
-
-            //Failed to fill container (either because it's already full or it's not a registered FluidContainer): restore item that was there before
-            inventory[slot] = slotItem;
-            
-            //Try the new way to fill container items
-            IFluidHandler handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(inventory[slot]);
-            if (handler != null)
-            {
-                final int used = handler.fill(liquid, true);
-                if (used > 0)
-                {
-                    tank.drain(used, true);
-                }
-                return;
-            }
+        	IFluidHandlerItem handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(inventory.get(slot));
+        	if (handler != null)
+        	{
+        		final int used = handler.fill(liquid, true);
+        		if (used > 0)
+        		{
+        			inventory.set(slot, handler.getContainer());
+        			tank.drain(used, true);
+        		}
+        	}
         }
     }
 
@@ -262,9 +290,9 @@ public class FluidUtil
      * @param inventory
      * @param slot
      */
-    public static void tryFillContainerFuel(FluidTank tank, ItemStack[] inventory, int slot)
+    public static void tryFillContainerFuel(FluidTank tank, NonNullList<ItemStack> inventory, int slot)
     {
-        if (FluidUtil.isValidContainer(inventory[slot]))
+        if (FluidUtil.isValidContainer(inventory.get(slot)))
         {
             FluidStack liquid = tank.getFluid();
 
@@ -282,15 +310,19 @@ public class FluidUtil
                     }
 
                     //But match any existing fuel fluid in the container
-                    ItemStack stack = inventory[slot];
-                    //(No null check necessary here: it cannot be a null ItemStack thanks to the .isValidContainer() check above
-                    if (stack.getItem() instanceof IFluidContainerItem)
+                    ItemStack stack = inventory.get(slot);
+                    Item item = stack.isEmpty() ? null : stack.getItem();
+                    if (!(item instanceof ItemCanisterGeneric || item instanceof ItemBucketGC))
                     {
-                        FluidStack existingFluid = ((IFluidContainerItem) stack.getItem()).getFluid(stack);
-                        if (existingFluid != null && !existingFluid.getFluid().getName().equals(GCFluids.fluidFuel.getName()))
-                        {
-                            liquid = new FluidStack(existingFluid, liquid.amount);
-                        }
+                    	IFluidHandlerItem handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(stack);
+                    	if (handler != null)
+                    	{
+                    		FluidStack existingFluid = net.minecraftforge.fluids.FluidUtil.getFluidContained(stack);
+                    		if (existingFluid != null && !existingFluid.getFluid().getName().equals(GCFluids.fluidFuel.getName()))
+                    		{
+                    			liquid = new FluidStack(existingFluid, liquid.amount);
+                    		}
+                    	}
                     }
 
                     FluidUtil.tryFillContainer(tank, liquid, inventory, slot, GCItems.fuelCanister);
@@ -308,13 +340,13 @@ public class FluidUtil
      * 
      * @param tank         The tank to fill with the fluid
      * @param desiredLiquid       The type of liquid intended for that tank
-     * @param inventory
+     * @param stacks
      * @param slot
      * @param amountOffered  The amount in the container being offered
      */
-    public static void loadFromContainer(FluidTank tank, Fluid desiredLiquid, ItemStack[] inventory, int slot, int amountOffered)
+    public static void loadFromContainer(FluidTank tank, Fluid desiredLiquid, NonNullList<ItemStack> stacks, int slot, int amountOffered)
     {
-        ItemStack slotItem = inventory[slot];
+        ItemStack slotItem = stacks.get(slot);
 
         if (slotItem.getItem() instanceof ItemCanisterGeneric)
         {
@@ -322,71 +354,66 @@ public class FluidUtil
             int used = tank.fill(new FluidStack(desiredLiquid, ItemCanisterGeneric.EMPTY - originalDamage), true);
             if (originalDamage + used >= ItemCanisterGeneric.EMPTY)
             {
-                inventory[slot] = new ItemStack(GCItems.oilCanister, 1, ItemCanisterGeneric.EMPTY);
+            	stacks.set(slot, new ItemStack(GCItems.oilCanister, 1, ItemCanisterGeneric.EMPTY));
             }
             else
             {
-                inventory[slot] = new ItemStack(slotItem.getItem(), 1, originalDamage + used);
+            	stacks.set(slot, new ItemStack(slotItem.getItem(), 1, originalDamage + used));
             }
+        }
+        else if (slotItem.getItem() instanceof ItemBucketGC && amountOffered == Fluid.BUCKET_VOLUME)
+        {
+        	ItemBucketGC bucket = (ItemBucketGC) slotItem.getItem();
+        	if (fluidsSame(bucket.accepts, desiredLiquid, true))
+        	{
+                tank.fill(new FluidStack(desiredLiquid, amountOffered), true);
+                stacks.set(slot, new ItemStack(Items.BUCKET));
+        	}
         }
         else
         {
-            if (tank.getFluid() == null || amountOffered <= tank.getCapacity() - tank.getFluid().amount)
+        	if (tank.getFluid() == null || amountOffered <= tank.getCapacity() - tank.getFluid().amount)
             {
-                if (FluidContainerRegistry.isFilledContainer(slotItem))
+        		//Now deal with the resulting container
+                if (FluidUtil.isFilledContainer(slotItem))
                 {
-                    int used = tank.fill(new FluidStack(desiredLiquid, amountOffered), true);
-                    final int itemCount = slotItem.stackSize;
-
-                    if (FluidContainerRegistry.isBucket(slotItem))
+                    final int itemCount = slotItem.getCount();
+                    if (FluidUtil.isBucket(slotItem))
                     {
+                		int used = tank.fill(new FluidStack(desiredLiquid, amountOffered), true);
                         if (itemCount > 1)
                         {
-                            tank.fill(new FluidStack(desiredLiquid, (itemCount - 1) * FluidContainerRegistry.BUCKET_VOLUME), true);
+                            tank.fill(new FluidStack(desiredLiquid, (itemCount - 1) * Fluid.BUCKET_VOLUME), true);
                         }
-                        inventory[slot] = new ItemStack(Items.BUCKET, itemCount);
-                    }
-                    else
-                    {
-                        ItemStack emptyStack = FluidContainerRegistry.drainFluidContainer(slotItem); 
-                        if (itemCount > 1)
-                        {
-                            tank.fill(new FluidStack(desiredLiquid, (itemCount - 1) * FluidContainerRegistry.getContainerCapacity(slotItem)), true);
-                            if (emptyStack != null)
-                            {
-                                emptyStack.stackSize = itemCount;
-                            }
-                        }
-                        inventory[slot] = emptyStack;
-                    }
-                }
-                else
-                {
-                    IFluidHandler handlerItem = net.minecraftforge.fluids.FluidUtil.getFluidHandler(slotItem);
-                    final int itemCount = slotItem.stackSize;
-                    if (handlerItem != null && itemCount == 1)
-                    {
-                        int used = tank.fill(new FluidStack(desiredLiquid, amountOffered), false);
-                        FluidStack given = handlerItem.drain(used, true); 
-                        if (given != null)
-                        {
-                            tank.fill(new FluidStack(desiredLiquid, given.amount), true);
-                        }
+                        stacks.set(slot, new ItemStack(Items.BUCKET, itemCount));
                         return;
                     }
-
-                    slotItem.stackSize--;
-
-                    if (slotItem.stackSize == 0)
+                    else if (itemCount == 1)
                     {
-                        inventory[slot] = null;
+                        IFluidHandlerItem handlerItem = net.minecraftforge.fluids.FluidUtil.getFluidHandler(slotItem);
+                        if (handlerItem != null)
+                        {
+                            int used = tank.fill(new FluidStack(desiredLiquid, amountOffered), false);
+                            FluidStack given = handlerItem.drain(used, true); 
+                            if (given != null)
+                            {
+                                tank.fill(new FluidStack(desiredLiquid, given.amount), true);
+                                stacks.set(slot, handlerItem.getContainer());
+                            }
+                            return;
+                        }
+                        //Fallback basic treatment
+                        ItemStack emptyStack = FluidUtil.getUsedContainer(slotItem);
+                        tank.fill(new FluidStack(desiredLiquid, FluidUtil.getContainerCapacity(slotItem)), true);
+                        stacks.set(slot, emptyStack);
+                        return;
                     }
                 }
             }
         }
     }
 
-    /**
+	/**
      * Tests for any type of container with some space in it
      * It can be either an empty container, or a Galacticraft canister
      * of the appropriate type, either empty or at least with some capacity remaining
@@ -396,26 +423,33 @@ public class FluidUtil
      * @param canisterType
      * @return
      */
-    public static boolean isEmptyContainer(ItemStack var4, Item canisterType)
+    public static boolean isPartialContainer(ItemStack var4, Item canisterType)
     {
         if (var4.getItem() instanceof ItemCanisterGeneric)
         {
             return var4.getItemDamage() == ItemCanisterGeneric.EMPTY || (var4.getItem() == canisterType && var4.getItemDamage() > 1);
         }
-        
-        if (var4.getItem() == Items.BUCKET)
-        {
-            return true;
-        }
 
-        IFluidHandler handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(var4);
+        IFluidHandlerItem handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(var4);
+        FluidStack containedFluid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
+
         if (handler != null)
         {
-            FluidStack containedFluid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
-            return (containedFluid == null || containedFluid.amount == 0);
+            if (containedFluid == null)
+            {
+                return true;
+            }
+
+            // Check that there is at least some space in container
+            containedFluid = containedFluid.copy();
+            containedFluid.amount = 1;
+            if (handler.fill(containedFluid, false) > 0)
+            {
+                return true;
+            }
         }
-        
-        return FluidContainerRegistry.isEmptyContainer(var4);
+
+        return false;
     }
 
     /**
@@ -423,7 +457,7 @@ public class FluidUtil
      * Either Galacticraft canisters or Forge containers
      *
      * @param var4
-     * @param canisterType
+     * @param targetFluid
      * @return
      */
     public static boolean isEmptyContainerFor(ItemStack var4, FluidStack targetFluid)
@@ -439,22 +473,43 @@ public class FluidUtil
                 return false;
             }
 
-            return fluidsSame(((ItemCanisterGeneric) var4.getItem()).getFluid(var4), targetFluid);
+            return fluidsSame(FluidUtil.getFluidContained(var4), targetFluid);
         }
 
-        FluidStack liquid;
-        IFluidHandler handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(var4);
-        if (handler != null)
+        if (isEmptyContainer(var4))
         {
-            liquid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
-            if (liquid != null && liquid.amount > 0) return false;
+            return true;
         }
-        else
-        {
-            liquid = FluidContainerRegistry.getFluidForFilledItem(var4);
-        }
-        return fluidsSame(liquid, targetFluid);
+
+        return fluidsSame(net.minecraftforge.fluids.FluidUtil.getFluidContained(var4), targetFluid);
     }
+
+    /**
+     * Returns the amount of fluid this container can provide in its current state
+     * (Similar to Forge's FluidUtil.getFluidContained()) 
+     * 
+     * @param container
+     * @return
+     */
+    public static int getContainerCapacity(ItemStack container)
+    {
+        if (container.getItem() instanceof ItemCanisterGeneric)
+        {
+            return container.getItemDamage() - 1;
+        }
+        if (!container.isEmpty())
+        {
+            container = container.copy();
+            container.setCount(1);
+            IFluidHandlerItem fluidHandler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(container);
+            if (fluidHandler != null)
+            {
+                FluidStack drain = fluidHandler.drain(Integer.MAX_VALUE, false);
+                return drain == null ? 0 : drain.amount;
+            }
+        }
+        return 0;
+	}
 
     /**
      * @param fs1 First FluidStack to compare
@@ -477,6 +532,48 @@ public class FluidUtil
         return f1.getName().equals(f2.getName());
     }
 
+    public static boolean fluidsSame(Fluid f1, Fluid f2, boolean fuzzy)
+    {
+        if (f1 == null || f2 == null || f1.getName() == null)
+        {
+            return false;
+        }
+        if (fuzzy)
+        {
+        	if (f1.getName().startsWith("fuel"))
+        	{
+        		return testFuel(f2.getName());
+        	}
+        	if (f1.getName().startsWith("oil"))
+        	{
+        		return f2.getName().startsWith("oil");
+        	}
+        	if (f1.getName().startsWith("water"))
+        	{
+        		return f2.getName().startsWith("water");
+        	}
+        }
+        return f1.getName().equals(f2.getName());
+    }
+
+    public static boolean fluidsSame(Fluid f1, String name2, boolean fuzzy)
+    {
+        if (f1 == null || name2 == null || f1.getName() == null)
+        {
+            return false;
+        }
+        if (fuzzy)
+        {
+        	if (name2.equals("fuel"))
+        	{
+        		return testFuel(f1.getName());
+        	}
+
+        	return f1.getName().startsWith(name2);
+        }
+        return f1.getName().equals(name2);
+    }
+
     /**
      * Test for any completely empty container of either type
      * Used, for example, in canExtractItem() logic
@@ -493,17 +590,12 @@ public class FluidUtil
         
         if (var4.getItem() == Items.BUCKET)
         {
-            return true;
+        	return true;
         }
 
-        IFluidHandler handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(var4);
-        if (handler != null)
-        {
-            FluidStack containedFluid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
-            return (containedFluid == null || containedFluid.amount == 0);
-        }
-
-        return FluidContainerRegistry.isEmptyContainer(var4);
+        IFluidHandlerItem handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(var4);
+        FluidStack containedFluid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
+        return handler != null && (containedFluid == null || containedFluid.amount == 0);
     }
 
     /**
@@ -527,19 +619,15 @@ public class FluidUtil
      */
     public static boolean isFilledContainer(ItemStack var4)
     {
+        if (net.minecraftforge.fluids.FluidUtil.getFluidHandler(var4) == null)
+        {
+            return false;
+        }
         if (var4.getItem() instanceof ItemCanisterGeneric)
         {
             return var4.getItemDamage() < ItemCanisterGeneric.EMPTY;
         }
-        
-        IFluidHandler handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(var4);
-        if (handler != null)
-        {
-            FluidStack containedFluid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
-            return containedFluid != null && containedFluid.amount > 0;
-        }
-        
-        return FluidContainerRegistry.getFluidForFilledItem(var4) != null;
+        return net.minecraftforge.fluids.FluidUtil.getFluidContained(var4) != null;
     }
 
     /**
@@ -551,20 +639,32 @@ public class FluidUtil
      */
     public static boolean isWaterContainer(ItemStack var4)
     {
-        FluidStack liquid;
-        IFluidHandler handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(var4);
-        if (handler != null)
-        {
-            FluidStack containedFluid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
-            return containedFluid != null && containedFluid.amount > 0;
-        }
-        else
-        {
-            liquid = FluidContainerRegistry.getFluidForFilledItem(var4);
-        }
+        FluidStack liquid = net.minecraftforge.fluids.FluidUtil.getFluidContained(var4);
         return liquid != null && liquid.getFluid() != null && liquid.getFluid().getName().equals("water");
     }
 
+
+	public static FluidStack getFluidContained(ItemStack container)
+	{
+        if (container == null)
+        {
+            return null;
+        }
+        
+        if (container.getItem() instanceof ItemCanisterGeneric)
+        {
+        	ItemCanisterGeneric canister = (ItemCanisterGeneric) container.getItem(); 
+        	return canister.getFluid(container);
+        }
+        
+        if (container.getItem() instanceof ItemBucketGC)
+        {
+        	return new FluidStack(((ItemBucketGC)container.getItem()).accepts, Fluid.BUCKET_VOLUME);
+        }
+
+        return net.minecraftforge.fluids.FluidUtil.getFluidContained(container);
+	}
+	
     /**
      * Test for any container type at all
      * Used, for example, in isItemValidForSlot() logic
@@ -574,86 +674,54 @@ public class FluidUtil
      */
     public static boolean isValidContainer(ItemStack slotItem)
     {
-        if (slotItem == null || slotItem.stackSize < 1)
-            return false;
-        
-        if (slotItem.getItem() instanceof ItemCanisterGeneric || slotItem.getItem() instanceof ItemBucket)
-            return true;
-
-        IFluidHandler handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(slotItem);
-        if (handler != null)
-        {
-            return true;
-        }
-        return FluidContainerRegistry.isContainer(slotItem);
+        return slotItem != null && slotItem.getCount() == 1 && (slotItem.getItem() instanceof ItemCanisterGeneric || slotItem.getItem() instanceof ItemBucketGC || net.minecraftforge.fluids.FluidUtil.getFluidHandler(slotItem) != null);
     }
 
     /**
      * Returns the used (empty) container, for example an empty bucket
      * Used, for example, in isItemValidForSlot() logic
      *
-     * @param slotItem
+     * @param container
      * @return True if it is a container; False if it is null or not a container
      */
     public static ItemStack getUsedContainer(ItemStack container)
     {
-        if (FluidContainerRegistry.isBucket(container) && FluidContainerRegistry.isFilledContainer(container))
+        IFluidHandlerItem handler = net.minecraftforge.fluids.FluidUtil.getFluidHandler(container);
+        if (FluidUtil.isBucket(container) && handler != null)
         {
-            return new ItemStack(Items.BUCKET, container.stackSize);
+            return new ItemStack(Items.BUCKET, container.getCount());
         }
-        else if (net.minecraftforge.fluids.FluidUtil.getFluidHandler(container) != null)
+        else if (handler != null) 
         {
-            //Somehow the container must handle its own emptying logic?!  Forge seems to offer no way to tell it, in 1.10
-            return container;
+            handler.drain(Integer.MAX_VALUE, true);
+            return handler.getContainer();
         }
         else
         {
-            container.stackSize--;
+            container.shrink(1);
 
-            if (container.stackSize == 0)
+            if (!container.isEmpty())
             {
-                return null;
+                return ItemStack.EMPTY;
             }
 
             return container;
         }
     }
 
-    public static FluidStack getFluidContained(ItemStack container)
-    {
-        if (container == null)
-        {
-            return null;
-        }
-        
-        if (container.getItem() instanceof ItemCanisterGeneric)
-        {
-            ItemCanisterGeneric canister = (ItemCanisterGeneric) container.getItem(); 
-            return new FluidStack(FluidRegistry.getFluid(canister.getAllowedFluid()), ItemCanisterGeneric.EMPTY - container.getItemDamage());
-        }
-
-        FluidStack liquid = net.minecraftforge.fluids.FluidUtil.getFluidContained(container);
-        if (liquid != null)
-        {
-            return liquid;
-        }
-        
-        return FluidContainerRegistry.getFluidForFilledItem(container);
-    }
-
     @SideOnly(Side.CLIENT)
     public static boolean isInsideOfFluid(Entity entity, Fluid fluid)
     {
         double d0 = entity.posY + entity.getEyeHeight();
-        int i = MathHelper.floor_double(entity.posX);
-        int j = MathHelper.floor_float(MathHelper.floor_double(d0));
-        int k = MathHelper.floor_double(entity.posZ);
+        int i = MathHelper.floor(entity.posX);
+        int j = MathHelper.floor(MathHelper.floor(d0));
+        int k = MathHelper.floor(entity.posZ);
         BlockPos pos = new BlockPos(i, j, k);
-        Block block = entity.worldObj.getBlockState(pos).getBlock();
+        Block block = entity.world.getBlockState(pos).getBlock();
 
         if (block != null && block instanceof IFluidBlock && ((IFluidBlock) block).getFluid() != null && ((IFluidBlock) block).getFluid().getName().equals(fluid.getName()))
         {
-            double filled = ((IFluidBlock) block).getFilledPercentage(entity.worldObj, pos);
+            double filled = ((IFluidBlock) block).getFilledPercentage(entity.world, pos);
             if (filled < 0)
             {
                 filled *= -1;
@@ -670,14 +738,39 @@ public class FluidUtil
         }
     }
 
-    public static boolean interactWithFluidHandler(ItemStack container, IFluidHandler fluidHandler, EntityPlayer player)
+    public static boolean isBucket(ItemStack container)
     {
-        if (container == null || fluidHandler == null || player == null)
+        if (container == null)
         {
             return false;
         }
 
-        //Special code for canisters onto FluidTanks
+        IFluidHandlerItem handlerItem = net.minecraftforge.fluids.FluidUtil.getFluidHandler(container);
+        if (handlerItem != null)
+        {
+            if (container.getItem() == Items.BUCKET)
+            {
+                return true;
+            }
+
+            if (handlerItem.getContainer().getItem() == Items.BUCKET)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Nonnull
+    public static FluidActionResult interactWithFluidHandler(@Nonnull ItemStack container, IFluidHandler fluidHandler, EntityPlayer player)
+	{
+        if (container.isEmpty() || fluidHandler == null || player == null)
+        {
+            return FluidActionResult.FAILURE;
+        }
+
+        //-----------Special code for canisters onto FluidTanks------------
         //This is NOT strictly necessary, as our 1.11 code for canisters implements IFluidHandler 100% correctly
         //
         //But our code offers three improvements over Forge:
@@ -687,31 +780,49 @@ public class FluidUtil
         //
         if (container.getItem() instanceof ItemCanisterGeneric)
         {
-            if (FluidUtil.tryEmptyCanister(container, fluidHandler, player.capabilities.isCreativeMode) != null || FluidUtil.tryFillCanister(container, fluidHandler, player.capabilities.isCreativeMode) != null)
-            {
-                // send inventory updates to client
-                if (player.inventoryContainer != null)
-                {
-                    player.inventoryContainer.detectAndSendChanges();
-                }
-                return true;
-            }
+            ItemStack result;
+        	if ((result = FluidUtil.tryEmptyCanister(container, fluidHandler, player.capabilities.isCreativeMode)) != ItemStack.EMPTY || (result = FluidUtil.tryFillCanister(container, fluidHandler, player.capabilities.isCreativeMode)) != ItemStack.EMPTY)
+        	{
+        		// send inventory updates to client
+        		if (player.inventoryContainer != null)
+        		{
+        			player.inventoryContainer.detectAndSendChanges();
+        		}
+                return new FluidActionResult(result);
+        	}
 
-            return false;
+        	return FluidActionResult.FAILURE;
+        }
+
+        //Forge's UniversalBucket appears to be non-functional, currently, for FILLING modded buckets
+     	//Try to fill an empty vanilla bucket:
+        if (container.getItem() == Items.BUCKET)
+        {
+        	ItemStack result = ItemBucketGC.fillBucketFrom(fluidHandler); 
+        	if (result != null)
+        	{
+        	    //Handle stacks of buckets: insert the filled bucket into another inventory slot or drop it
+        	    if (container.getCount() > 1)
+        	    {
+                    ItemStack remainder = ItemHandlerHelper.insertItemStacked(new PlayerMainInvWrapper(player.inventory), result, false);
+                    if (!remainder.isEmpty() && player != null)
+                    {
+                        ItemHandlerHelper.giveItemToPlayer(player, remainder);
+                    }
+                    result = container.copy();
+                    result.shrink(1);
+        	    }
+        		return new FluidActionResult(result);
+        	}
+        	//If failure, fall through to other Forge methods
         }
         
-        //Also try our buckets, and any registered containers from any other mods (Forge why don't you do this?)
-        if (FluidContainerRegistry.isEmptyContainer(container))
-        {
-            FluidStack liquid = fluidHandler.drain(FluidContainerRegistry.getContainerCapacity(container), false);
-            ItemStack result = FluidContainerRegistry.fillFluidContainer(liquid, container);
-            if (result != null)
-                return true;
-        }
-
+        //---------the rest of this is standard Forge code from interactWithFluidHandler()---------
+        //-----------(but without the InvWrapper bug which could put fluids in armor slots!)-------
         IItemHandler playerInventory = new PlayerMainInvWrapper(player.inventory);
-        boolean fillResult = net.minecraftforge.fluids.FluidUtil.tryFillContainerAndStow(container, fluidHandler, playerInventory, Integer.MAX_VALUE, player);
-        if (fillResult)
+
+        FluidActionResult fillResult = net.minecraftforge.fluids.FluidUtil.tryFillContainerAndStow(container, fluidHandler, playerInventory, Integer.MAX_VALUE, player);
+        if (fillResult.isSuccess())
         {
             return fillResult;
         }
@@ -721,16 +832,12 @@ public class FluidUtil
         }
      }
 
-    /**
-     * This is how to do it properly.  Nice and simple, and high performance.
-     * @param isCreativeMode 
-     */
     private static ItemStack tryFillCanister(ItemStack canister, IFluidHandler tank, boolean isCreativeMode)
     {
-        int currCapacity = canister.getItemDamage() - 1; 
+    	int currCapacity = canister.getItemDamage() - 1; 
         if (currCapacity <= 0)
         {
-            return null;
+            return ItemStack.EMPTY;
         }
         FluidStack liquid = tank.drain(currCapacity, false);
         int transferred = ((ItemCanisterGeneric)canister.getItem()).fill(canister, liquid, !isCreativeMode);
@@ -739,15 +846,15 @@ public class FluidUtil
             liquid = tank.drain(transferred, true);
             return canister;
         }
-        return null;
+        return ItemStack.EMPTY;
     }
 
     private static ItemStack tryEmptyCanister(ItemStack canister, IFluidHandler tank, boolean isCreativeMode)
     {
-        int currContents = ItemCanisterGeneric.EMPTY - canister.getItemDamage(); 
+    	int currContents = ItemCanisterGeneric.EMPTY - canister.getItemDamage(); 
         if (currContents <= 0)
         {
-            return null;
+        	return ItemStack.EMPTY;
         }
         FluidStack liquid = ((ItemCanisterGeneric)canister.getItem()).drain(canister, currContents, false); 
         int transferred = tank.fill(liquid, true);
@@ -756,6 +863,6 @@ public class FluidUtil
             ((ItemCanisterGeneric)canister.getItem()).drain(canister, transferred, !isCreativeMode);
             return canister;
         }
-        return null;
+        return ItemStack.EMPTY;
     }
 }

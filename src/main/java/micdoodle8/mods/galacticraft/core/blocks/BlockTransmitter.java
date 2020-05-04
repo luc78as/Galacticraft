@@ -35,9 +35,9 @@ public abstract class BlockTransmitter extends BlockAdvanced
     }
 
     @Override
-    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn)
+    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
     {
-        super.neighborChanged(state, worldIn, pos, blockIn);
+        super.neighborChanged(state, worldIn, pos, blockIn, fromPos);
 
         TileEntity tile = worldIn.getTileEntity(pos);
 
@@ -51,7 +51,7 @@ public abstract class BlockTransmitter extends BlockAdvanced
     }
 
 //    @Override
-//    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, World worldIn, BlockPos pos)
+//    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, IBlockAccess worldIn, BlockPos pos)
 //    {
 //        this.setBlockBoundsBasedOnState(worldIn, pos);
 //        return super.getCollisionBoundingBox(blockState, worldIn, pos);

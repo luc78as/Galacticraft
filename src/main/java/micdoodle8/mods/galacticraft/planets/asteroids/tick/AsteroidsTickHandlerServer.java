@@ -57,7 +57,7 @@ public class AsteroidsTickHandlerServer
             
             if (AsteroidsTickHandlerServer.spaceRaceData == null)
             {
-                World world = server.worldServerForDimension(0);
+                World world = server.getWorld(0);
                 AsteroidsTickHandlerServer.spaceRaceData = (ShortRangeTelepadHandler) world.getMapStorage().getOrLoadData(ShortRangeTelepadHandler.class, ShortRangeTelepadHandler.saveDataID);
 
                 if (AsteroidsTickHandlerServer.spaceRaceData == null)
@@ -103,7 +103,7 @@ public class AsteroidsTickHandlerServer
                                 break;
                             }
                         }
-                        if (!inListAlready && !miner.isDead)
+                        if (!inListAlready)
                         {
                             BlockVec3 data = new BlockVec3(miner.chunkCoordX, miner.dimension, miner.chunkCoordZ);
                             data.sideDoneBits = index;
@@ -119,27 +119,44 @@ public class AsteroidsTickHandlerServer
     @SubscribeEvent
     public void onWorldTick(WorldTickEvent event)
     {
-        if (event.phase == Phase.END)
+        if (event.phase == Phase.START)
         {
-            int index = -1;
             for(EntityAstroMiner miner : activeMiners)
             {
-                index ++;
+                if (miner.playerMP != null && miner.world == event.world && !miner.isDead)
+                {
+                    miner.serverTick = true;
+                    miner.serverTickSave = miner.ticksExisted;
+                }
+            }
+        }
+        else if (event.phase == Phase.END)
+        {
+            for(EntityAstroMiner miner : activeMiners)
+            {
                 if (miner.isDead)
                 {
 //                    minerIt.remove();  Don't remove it, we want the index number to be static for the others
                     continue;
                 }
-                if (miner.playerMP != null && miner.worldObj == event.world)
+                if (miner.playerMP != null && miner.world == event.world)
                 {
+                    if (miner.serverTick)
+                    {
+                        //Force an entity update tick, if it didn't happen already (mainly needed on Sponge servers - entities not super close to players seem to be not updated at all on Sponge even if the chunk is active, see issue #3307)
+                        miner.ticksExisted = miner.serverTickSave + 1;
+                        miner.onUpdate();
+                    }
+
                     try
                     {
                         if (droppedChunks == null)
                         {
-                            Class clazz = ((WorldServer)miner.worldObj).getChunkProvider().getClass();
+                            Class clazz = ((WorldServer)miner.world).getChunkProvider().getClass();
                             droppedChunks = clazz.getDeclaredField(GCCoreUtil.isDeobfuscated() ? "droppedChunksSet" : "field_73248_b");
+                            droppedChunks.setAccessible(true);
                         }
-                        Set<Long> undrop = (Set<Long>) droppedChunks.get(((WorldServer)miner.worldObj).getChunkProvider());
+                        Set<Long> undrop = (Set<Long>) droppedChunks.get(((WorldServer)miner.world).getChunkProvider());
                         undrop.remove(ChunkPos.asLong(miner.chunkCoordX, miner.chunkCoordZ));
                     } catch (Exception ignore)
                     {
@@ -190,13 +207,13 @@ public class AsteroidsTickHandlerServer
             for (BlockVec3 data : copyList)
             {
                 WorldProvider p = WorldUtil.getProviderForDimensionServer(data.y);
-                if (p != null && p.worldObj != null)
+                if (p != null && p.world != null)
                 {
                     GCLog.debug("Loading chunk " + data.y + ": " + data.x + "," + data.z + " - should contain a miner!");
-                    WorldServer w = (WorldServer)p.worldObj;
-                    CompatibilityManager.forceLoadChunks(w);
+                    WorldServer w = (WorldServer)p.world;
+                    boolean previous = CompatibilityManager.forceLoadChunks(w);
                     w.getChunkProvider().loadChunk(data.x, data.z);
-                    CompatibilityManager.forceLoadChunksEnd(w);
+                    CompatibilityManager.forceLoadChunksEnd(w, previous);
                 }
             }
             AsteroidsTickHandlerServer.loadingSavedChunks.set(false);

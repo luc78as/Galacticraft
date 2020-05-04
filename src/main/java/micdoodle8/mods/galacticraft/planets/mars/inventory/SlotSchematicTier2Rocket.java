@@ -33,8 +33,8 @@ public class SlotSchematicTier2Rocket extends Slot
     {
         if (this.player instanceof EntityPlayerMP)
         {
-            int dimID = GCCoreUtil.getDimensionID(this.player.worldObj);
-            GCCoreUtil.sendToAllAround(new PacketSimple(EnumSimplePacket.C_SPAWN_SPARK_PARTICLES, dimID, new Object[] { this.pos }), this.player.worldObj, dimID, this.pos, 20);
+            int dimID = GCCoreUtil.getDimensionID(this.player.world);
+            GCCoreUtil.sendToAllAround(new PacketSimple(EnumSimplePacket.C_SPAWN_SPARK_PARTICLES, dimID, new Object[] { this.pos }), this.player.world, dimID, this.pos, 20);
         }
     }
 
@@ -47,7 +47,7 @@ public class SlotSchematicTier2Rocket extends Slot
         List<INasaWorkbenchRecipe> recipes = GalacticraftRegistry.getRocketT2Recipes();
         for (INasaWorkbenchRecipe recipe : recipes)
         {
-            if (ItemStack.areItemsEqual(par1ItemStack, recipe.getRecipeInput().get(this.index)))
+            if (recipe.getRecipeInput().get(this.index).apply(par1ItemStack))
                 return true;
         }
         return false;

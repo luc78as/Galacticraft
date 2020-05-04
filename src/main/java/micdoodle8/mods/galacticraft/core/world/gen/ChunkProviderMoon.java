@@ -1,5 +1,6 @@
 package micdoodle8.mods.galacticraft.core.world.gen;
 
+import micdoodle8.mods.galacticraft.api.prefab.world.gen.BiomeAdaptive;
 import micdoodle8.mods.galacticraft.api.prefab.world.gen.MapGenBaseMeta;
 import micdoodle8.mods.galacticraft.api.world.ChunkProviderBase;
 import micdoodle8.mods.galacticraft.core.GCBlocks;
@@ -21,6 +22,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkPrimer;
+
 import java.util.List;
 import java.util.Random;
 
@@ -37,12 +39,12 @@ public class ChunkProviderMoon extends ChunkProviderBase
     private final NoiseModule noiseGen3;
     private final NoiseModule noiseGen4;
 
-    private final World worldObj;
+    private final World world;
     private final MapGenVillageMoon villageGenerator = new MapGenVillageMoon();
 
     private final MapGenDungeon dungeonGeneratorMoon = new MapGenDungeon(new DungeonConfiguration(GCBlocks.blockMoon.getDefaultState().withProperty(BlockBasicMoon.BASIC_TYPE_MOON, BlockBasicMoon.EnumBlockBasicMoon.MOON_DUNGEON_BRICK), 25, 8, 16, 5, 6, RoomBoss.class, RoomTreasure.class));
 
-    private Biome[] biomesForGeneration = { BiomeMoon.moonFlat };
+    private Biome[] biomesForGeneration = { BiomeAdaptive.biomeDefault };
 
     private final MapGenBaseMeta caveGenerator = new MapGenCavesMoon();
 
@@ -56,7 +58,7 @@ public class ChunkProviderMoon extends ChunkProviderBase
 
     public ChunkProviderMoon(World par1World, long par2, boolean par4)
     {
-        this.worldObj = par1World;
+        this.world = par1World;
         this.rand = new Random(par2);
         this.noiseGen1 = new Gradient(this.rand.nextLong(), 4, 0.25F);
         this.noiseGen2 = new Gradient(this.rand.nextLong(), 4, 0.25F);
@@ -171,7 +173,7 @@ public class ChunkProviderMoon extends ChunkProviderBase
     }
 
     @Override
-    public Chunk provideChunk(int x, int z)
+    public Chunk generateChunk(int x, int z)
     {
         this.rand.setSeed((long) x * 341873128712L + (long) z * 132897987541L);
         ChunkPrimer chunkprimer = new ChunkPrimer();
@@ -179,17 +181,17 @@ public class ChunkProviderMoon extends ChunkProviderBase
         this.createCraters(x, z, chunkprimer);
         this.replaceBlocksForBiome(x, z, chunkprimer, null);
 
-        this.caveGenerator.generate(this.worldObj, x, z, chunkprimer);
+        this.caveGenerator.generate(this.world, x, z, chunkprimer);
 
-        this.dungeonGeneratorMoon.generate(this.worldObj, x, z, chunkprimer);
-        this.villageGenerator.generate(this.worldObj, x, z, chunkprimer);
+        this.dungeonGeneratorMoon.generate(this.world, x, z, chunkprimer);
+        this.villageGenerator.generate(this.world, x, z, chunkprimer);
 
-        Chunk chunk = new Chunk(this.worldObj, chunkprimer, x, z);
+        Chunk chunk = new Chunk(this.world, chunkprimer, x, z);
         byte[] abyte = chunk.getBiomeArray();
-        byte id = (byte) Biome.getIdForBiome(BiomeMoon.moonFlat);
+        final byte b = (byte) Biome.getIdForBiome( BiomeAdaptive.biomeDefault );
         for (int i = 0; i < abyte.length; ++i)
         {
-            abyte[i] = id;
+            abyte[i] = b;
         }
 
         chunk.generateSkylightMap();
@@ -272,27 +274,27 @@ public class ChunkProviderMoon extends ChunkProviderBase
         int i = x * 16;
         int j = z * 16;
         BlockPos blockpos = new BlockPos(i, 0, j);
-        Biome biomegenbase = this.worldObj.getBiome(blockpos.add(16, 0, 16));
-        this.rand.setSeed(this.worldObj.getSeed());
+        Biome biomegenbase = this.world.getBiome(blockpos.add(16, 0, 16));
+        this.rand.setSeed(this.world.getSeed());
         long k = this.rand.nextLong() / 2L * 2L + 1L;
         long l = this.rand.nextLong() / 2L * 2L + 1L;
-        this.rand.setSeed((long) x * k + (long) z * l ^ this.worldObj.getSeed());
+        this.rand.setSeed((long) x * k + (long) z * l ^ this.world.getSeed());
 
         if (!ConfigManagerCore.disableMoonVillageGen)
         {
-            this.villageGenerator.generateStructure(this.worldObj, this.rand, new ChunkPos(x, z));
+            this.villageGenerator.generateStructure(this.world, this.rand, new ChunkPos(x, z));
         }
 
-        this.dungeonGeneratorMoon.generateStructure(this.worldObj, this.rand, new ChunkPos(x, z));
+        this.dungeonGeneratorMoon.generateStructure(this.world, this.rand, new ChunkPos(x, z));
 
-        biomegenbase.decorate(this.worldObj, this.rand, new BlockPos(i, 0, j));
+        biomegenbase.decorate(this.world, this.rand, new BlockPos(i, 0, j));
         BlockFalling.fallInstantly = false;
     }
 
     @Override
     public List<Biome.SpawnListEntry> getPossibleCreatures(EnumCreatureType creatureType, BlockPos pos)
     {
-        Biome biomegenbase = this.worldObj.getBiome(pos);
+        Biome biomegenbase = this.world.getBiome(pos);
         return biomegenbase.getSpawnableList(creatureType);
     }
 
@@ -301,9 +303,9 @@ public class ChunkProviderMoon extends ChunkProviderBase
     {
         if (!ConfigManagerCore.disableMoonVillageGen)
         {
-            this.villageGenerator.generate(this.worldObj, x, z, null);
+            this.villageGenerator.generate(this.world, x, z, null);
         }
 
-        this.dungeonGeneratorMoon.generate(this.worldObj, x, z, null);
+        this.dungeonGeneratorMoon.generate(this.world, x, z, null);
     }
 }

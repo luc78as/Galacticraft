@@ -148,7 +148,7 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
     public static Map<Fluid, ResourceLocation> submergedTextures = Maps.newHashMap();
     public static IPlayerClient playerClientHandler = new PlayerClient();
     public static Minecraft mc = FMLClientHandler.instance().getClient();
-    public static List<String> gearDataRequests = Lists.newArrayList();
+    public static List<UUID> gearDataRequests = Lists.newArrayList();
     public static DynamicTextureProper overworldTextureClient;
     public static DynamicTextureProper overworldTextureWide;
     public static DynamicTextureProper overworldTextureLarge;
@@ -174,12 +174,12 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
         {
             ClientPlayerAPI.register(Constants.MOD_ID_CORE, GCPlayerBaseSP.class);
         }
+        MinecraftForge.EVENT_BUS.register(this);
     }
 
     @Override
     public void init(FMLInitializationEvent event)
     {
-        GCSounds.registerSounds();
         MUSIC_TYPE_MARS = EnumHelper.addEnum(MusicTicker.MusicType.class, "MARS_JC", new Class[] { SoundEvent.class, Integer.TYPE, Integer.TYPE }, GCSounds.music, 12000, 24000);
         ClientProxyCore.registerHandlers();
         ClientProxyCore.registerTileEntityRenderers();
@@ -216,7 +216,6 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
     public void postInit(FMLPostInitializationEvent event)
     {
         ClientProxyCore.registerInventoryTabs();
-        ClientProxyCore.addVariants();
         ItemSchematic.registerTextures();
 
         MinecraftForge.EVENT_BUS.register(new TabRegistry());
@@ -278,6 +277,8 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
     @Override
     public void registerVariants()
     {
+        ClientProxyCore.addVariants();
+
         Item fuel = Item.getItemFromBlock(GCBlocks.fuel);
         ModelBakery.registerItemVariants(fuel, new ResourceLocation("galacticraftcore:fuel"));
         ModelLoader.setCustomMeshDefinition(fuel, IItemMeshDefinitionCustom.create((ItemStack stack) -> fuelLocation));
@@ -333,6 +334,7 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
         ModelLoader.setCustomStateMapper(GCBlocks.grating, new StateMap.Builder().ignore(BlockLiquid.LEVEL).ignore(BlockFluidBase.LEVEL).build());
         BlockGrating.remapVariant(GCBlocks.gratingWater);
         BlockGrating.remapVariant(GCBlocks.gratingLava);
+        BlockGrating.remapForgeVariants();
         ModelLoader.setCustomStateMapper(GCBlocks.concealedRedstone, new StateMap.Builder().ignore(BlockConcealedRedstone.POWER).build());
         ModelLoader.setCustomStateMapper(GCBlocks.concealedRepeater_Powered, new StateMap.Builder().ignore(BlockConcealedRepeater.FACING, BlockConcealedRepeater.DELAY, BlockConcealedRepeater.LOCKED).build());
         ModelLoader.setCustomStateMapper(GCBlocks.concealedRepeater_Unpowered, new StateMap.Builder().ignore(BlockConcealedRepeater.FACING, BlockConcealedRepeater.DELAY, BlockConcealedRepeater.LOCKED).build());
@@ -342,7 +344,7 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
     @Override
     public World getClientWorld()
     {
-        return ClientProxyCore.mc.theWorld;
+        return ClientProxyCore.mc.world;
     }
 
     @Override
@@ -359,7 +361,7 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
             return WorldUtil.getWorldForDimensionServer(dimensionID);
         }
 
-        World world = ClientProxyCore.mc.theWorld;
+        World world = ClientProxyCore.mc.world;
 
         if (world != null && GCCoreUtil.getDimensionID(world) == dimensionID)
         {
@@ -374,7 +376,7 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
     {
         if (handler instanceof NetHandlerPlayServer)
         {
-            return ((NetHandlerPlayServer) handler).playerEntity;
+            return ((NetHandlerPlayServer) handler).player;
         }
         else
         {
@@ -478,11 +480,11 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
         }
         event.getModelRegistry().putObject(blockLoc, new ModelPanelLightBase(defaultLoc));
         defaultLoc = new ModelResourceLocation(Constants.ASSET_PREFIX + ":grating", "normal");
-        event.getModelRegistry().putObject(defaultLoc, new ModelGrating(defaultLoc));
+        event.getModelRegistry().putObject(defaultLoc, new ModelGrating(defaultLoc, event.getModelManager()));
         for (int i = 1; i < BlockGrating.number; i++)
         {
             blockLoc = new ModelResourceLocation(Constants.ASSET_PREFIX + ":grating" + i, "normal");
-            event.getModelRegistry().putObject(blockLoc, new ModelGrating(defaultLoc));
+            event.getModelRegistry().putObject(blockLoc, new ModelGrating(defaultLoc, event.getModelManager()));
         }
 //
 //        for (PartialCanister container : ClientProxyCore.canisters)
@@ -536,7 +538,6 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
         ClientRegistry.registerKeyBinding(KeyHandlerClient.galaxyMap);
         ClientRegistry.registerKeyBinding(KeyHandlerClient.openFuelGui);
         ClientRegistry.registerKeyBinding(KeyHandlerClient.toggleAdvGoggles);
-        MinecraftForge.EVENT_BUS.register(GalacticraftCore.proxy);
         MinecraftForge.EVENT_BUS.register(new EventHandlerClient());
     }
 
@@ -837,11 +838,11 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
 
         try
         {
-            capeListUrl = new URL("https://raw.github.com/micdoodle8/Galacticraft/master/capes.txt");
+            capeListUrl = new URL("https://raw.github.com/micdoodle8/Galacticraft/master/capes-uuid.txt");
         }
         catch (IOException e)
         {
-            FMLLog.severe("Error getting capes list URL");
+            GCLog.severe("Error getting capes list URL");
             if (ConfigManagerCore.enableDebug) e.printStackTrace();
             return;
         }
@@ -882,15 +883,13 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
             {
                 if (line.contains(":"))
                 {
-                    int splitLocation = line.indexOf(":");
-                    String username = line.substring(0, splitLocation);
-                    ClientProxyCore.capeMap.put(username, new ResourceLocation(Constants.ASSET_PREFIX, "textures/misc/capes/" + convertCapeString(line.substring(splitLocation + 1)) + ".png"));
+                    capeMap.put(line.split(":")[0], new ResourceLocation(Constants.MOD_ID_CORE, "textures/misc/capes/cape_" + line.split(":")[1].split(" ")[0].substring(4).toLowerCase() + ".png"));
                 }
             }
         }
         catch (IOException e)
         {
-            if (ConfigManagerCore.enableDebug) e.printStackTrace();
+            if (ConfigManagerCore.enableDebug)e.printStackTrace();
         }
         finally
         {
@@ -903,22 +902,6 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
                 if (ConfigManagerCore.enableDebug) e.printStackTrace();
             }
         }
-    }
-
-    private static String convertCapeString(String capeName)
-    {
-        StringBuilder underscoreCase = new StringBuilder();
-        for (int i = 0; i < capeName.length(); ++i)
-        {
-            char c = capeName.charAt(i);
-            if (!Character.isLowerCase(c))
-            {
-                underscoreCase.append("_");
-                c = Character.toLowerCase(c);
-            }
-            underscoreCase.append(c);
-        }
-        return underscoreCase.toString();
     }
 
     public static void registerInventoryTabs()
@@ -960,11 +943,11 @@ public class ClientProxyCore extends CommonProxyCore implements IResourceManager
 
         if (gearData == null)
         {
-            String id = PlayerUtil.getName(player);
+            UUID id = player.getUniqueID();
 
             if (!ClientProxyCore.gearDataRequests.contains(id))
             {
-                GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_REQUEST_GEAR_DATA, GCCoreUtil.getDimensionID(player.worldObj), new Object[] { id }));
+                GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_REQUEST_GEAR_DATA2, GCCoreUtil.getDimensionID(player.world), new Object[] { id }));
                 ClientProxyCore.gearDataRequests.add(id);
             }
         }

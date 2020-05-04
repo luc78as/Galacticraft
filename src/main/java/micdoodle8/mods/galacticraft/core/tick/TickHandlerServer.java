@@ -124,6 +124,7 @@ public class TickHandlerServer
         TickHandlerServer.tickCount = 0L;
         TickHandlerServer.fluidNetworks.clear();
         MapUtil.reset();
+        TileEntityPainter.loadedTilesForDim.clear();
     }
 
     public static void addFootprint(long chunkKey, Footprint print, int dimID)
@@ -272,11 +273,11 @@ public class TickHandlerServer
                     {
                         final Integer dim = GCCoreUtil.getDimensionID(provider);
                         GCLog.info("Found matching world (" + dim.toString() + ") for name: " + change.getDimensionName());
-    
-                        if (change.getPlayer().worldObj instanceof WorldServer)
+
+                        if (change.getPlayer().world instanceof WorldServer)
                         {
-                            final WorldServer world = (WorldServer) change.getPlayer().worldObj;
-    
+                            final WorldServer world = (WorldServer) change.getPlayer().world;
+
                             WorldUtil.transferEntityToDimension(change.getPlayer(), dim, world);
                         }
                     }
@@ -286,7 +287,7 @@ public class TickHandlerServer
                     }
 
                     stats.setTeleportCooldown(10);
-                    GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_CLOSE_GUI, GCCoreUtil.getDimensionID(change.getPlayer().worldObj), new Object[] {}), change.getPlayer());
+                    GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_CLOSE_GUI, GCCoreUtil.getDimensionID(change.getPlayer().world), new Object[] {}), change.getPlayer());
                 }
                 catch (Exception e)
                 {
@@ -308,7 +309,7 @@ public class TickHandlerServer
 
             if (TickHandlerServer.spaceRaceData == null)
             {
-                World world = server.worldServerForDimension(0);
+                World world = server.getWorld(0);
                 TickHandlerServer.spaceRaceData = (WorldDataSpaceRaces) world.getMapStorage().getOrLoadData(WorldDataSpaceRaces.class, WorldDataSpaceRaces.saveDataID);
 
                 if (TickHandlerServer.spaceRaceData == null)
@@ -324,7 +325,7 @@ public class TickHandlerServer
 
             if (TickHandlerServer.tickCount % 33 == 0)
             {
-                WorldServer[] worlds = server.worldServers;
+                WorldServer[] worlds = server.worlds;
 
                 for (int i = worlds.length - 1; i >= 0; i--)
                 {
@@ -334,7 +335,7 @@ public class TickHandlerServer
             }
             if (TickHandlerServer.tickCount % 100 == 0)
             {
-                WorldServer[] worlds = server.worldServers;
+                WorldServer[] worlds = server.worlds;
 
                 for (int i = 0; i < worlds.length; i++)
                 {
@@ -354,7 +355,7 @@ public class TickHandlerServer
                             while (iterator.hasNext())
                             {
                                 Chunk chunk = (Chunk) iterator.next();
-                                long chunkKey = ChunkPos.asLong(chunk.xPosition, chunk.zPosition);
+                                long chunkKey = ChunkPos.asLong(chunk.x, chunk.z);
 
                                 List<Footprint> footprints = footprintMap.get(chunkKey);
 
@@ -397,7 +398,7 @@ public class TickHandlerServer
             {
                 for (BlockVec3Dim targetPoint : footprintBlockChanges)
                 {
-                    WorldServer[] worlds = server.worldServers;
+                    WorldServer[] worlds = server.worlds;
 
                     for (int i = 0; i < worlds.length; i++)
                     {
@@ -511,7 +512,9 @@ public class TickHandlerServer
                 TickHandlerServer.energyTransmitterUpdates.clear();
                 for (TileBaseConductor newTile : pass)
                 {
-                    if (!newTile.isInvalid())
+                    // I'm not sure why this would be null, but apparently it can be
+                    //      See https://github.com/micdoodle8/Galacticraft/issues/3700
+                    if (newTile != null && !newTile.isInvalid())
                     {
                         newTile.refresh();
                     }
@@ -607,7 +610,7 @@ public class TickHandlerServer
                     final Entity[] entityList = world.loadedEntityList.toArray(new Entity[world.loadedEntityList.size()]);
                     for (final Entity e : entityList)
                     {
-                        if (e.posY <= minY && e.worldObj == world)
+                        if (e.posY <= minY && e.world == world)
                         {
                             WorldUtil.transferEntityToDimension(e, dim, world, false, null);
                         }

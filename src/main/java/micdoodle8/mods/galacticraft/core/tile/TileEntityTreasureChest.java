@@ -14,12 +14,8 @@ import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.*;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ITickable;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundCategory;
+import net.minecraft.util.*;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
@@ -36,7 +32,6 @@ import java.util.Random;
 
 public class TileEntityTreasureChest extends TileEntityAdvanced implements ITickable, IInventory, IKeyable, ISidedInventory
 {
-    private ItemStack[] chestContents = new ItemStack[27];
     public boolean adjacentChestChecked;
     public float lidAngle;
     public float prevLidAngle;
@@ -59,193 +54,37 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
 
     public TileEntityTreasureChest(int tier)
     {
+        super("container.treasurechest.name");
         this.tier = tier;
-    }
-
-    /**
-     * Returns the number of slots in the inventory.
-     */
-    @Override
-    public int getSizeInventory()
-    {
-        return 27;
-    }
-
-    /**
-     * Returns the stack in slot i
-     */
-    @Override
-    public ItemStack getStackInSlot(int index)
-    {
-        return this.chestContents[index];
-    }
-
-    /**
-     * Removes from an inventory slot (first arg) up to a specified number (second arg) of items and returns them in a
-     * new stack.
-     */
-    @Override
-    public ItemStack decrStackSize(int index, int count)
-    {
-        if (this.chestContents[index] != null)
-        {
-            ItemStack itemstack;
-
-            if (this.chestContents[index].stackSize <= count)
-            {
-                itemstack = this.chestContents[index];
-                this.chestContents[index] = null;
-                this.markDirty();
-                return itemstack;
-            }
-            else
-            {
-                itemstack = this.chestContents[index].splitStack(count);
-
-                if (this.chestContents[index].stackSize == 0)
-                {
-                    this.chestContents[index] = null;
-                }
-
-                this.markDirty();
-                return itemstack;
-            }
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    /**
-     * When some containers are closed they call this on each slot, then drop whatever it returns as an EntityItem -
-     * like when you close a workbench GUI.
-     */
-    @Override
-    public ItemStack removeStackFromSlot(int index)
-    {
-        if (this.chestContents[index] != null)
-        {
-            ItemStack itemstack = this.chestContents[index];
-            this.chestContents[index] = null;
-            return itemstack;
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    /**
-     * Sets the given item stack to the specified slot in the inventory (can be crafting or armor sections).
-     */
-    @Override
-    public void setInventorySlotContents(int index, ItemStack stack)
-    {
-        this.chestContents[index] = stack;
-
-        if (stack != null && stack.stackSize > this.getInventoryStackLimit())
-        {
-            stack.stackSize = this.getInventoryStackLimit();
-        }
-
-        this.markDirty();
-    }
-
-    /**
-     * Gets the name of this command sender (usually username, but possibly "Rcon")
-     */
-    @Override
-    public String getName()
-    {
-        return GCCoreUtil.translate("container.treasurechest.name");
-    }
-
-    /**
-     * Returns true if this thing is named
-     */
-    @Override
-    public boolean hasCustomName()
-    {
-        return false;
-    }
-
-    public void setCustomName(String name)
-    {
-    }
-    
-    @Override
-    public void readFromNBT(NBTTagCompound compound)
-    {
-        super.readFromNBT(compound);
-        this.locked = compound.getBoolean("isLocked");
-        this.tier = compound.getInteger("tier");
-        NBTTagList nbttaglist = compound.getTagList("Items", 10);
-        this.chestContents = new ItemStack[this.getSizeInventory()];
-
-        for (int i = 0; i < nbttaglist.tagCount(); ++i)
-        {
-            NBTTagCompound nbttagcompound1 = nbttaglist.getCompoundTagAt(i);
-            int j = nbttagcompound1.getByte("Slot") & 255;
-
-            if (j >= 0 && j < this.chestContents.length)
-            {
-                this.chestContents[j] = ItemStack.loadItemStackFromNBT(nbttagcompound1);
-            }
-        }
-
-        checkLootAndRead(compound);
+        inventory = NonNullList.withSize(27, ItemStack.EMPTY);
     }
 
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound compound)
+    public void readFromNBT(NBTTagCompound nbt)
     {
-        super.writeToNBT(compound);
-        compound.setBoolean("isLocked", this.locked);
-        compound.setInteger("tier", this.tier);
-        NBTTagList nbttaglist = new NBTTagList();
+        super.readFromNBT(nbt);
+        this.locked = nbt.getBoolean("isLocked");
+        this.tier = nbt.getInteger("tier");
 
-        for (int i = 0; i < this.chestContents.length; ++i)
-        {
-            if (this.chestContents[i] != null)
-            {
-                NBTTagCompound nbttagcompound1 = new NBTTagCompound();
-                nbttagcompound1.setByte("Slot", (byte) i);
-                this.chestContents[i].writeToNBT(nbttagcompound1);
-                nbttaglist.appendTag(nbttagcompound1);
-            }
-        }
+        checkLootAndRead(nbt);
+    }
 
-        compound.setTag("Items", nbttaglist);
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt)
+    {
+        super.writeToNBT(nbt);
+        nbt.setBoolean("isLocked", this.locked);
+        nbt.setInteger("tier", this.tier);
 
-        checkLootAndWrite(compound);
+        checkLootAndWrite(nbt);
 
-        return compound;
+        return nbt;
     }
 
     @Override
     public NBTTagCompound getUpdateTag()
     {
         return this.writeToNBT(new NBTTagCompound());
-    }
-
-    /**
-     * Returns the maximum stack size for a inventory slot. Seems to always be 64, possibly will be extended. *Isn't
-     * this more of a set than a get?*
-     */
-    @Override
-    public int getInventoryStackLimit()
-    {
-        return 64;
-    }
-
-    /**
-     * Do not make give this method the name canInteractWith because it clashes with Container
-     */
-    @Override
-    public boolean isUseableByPlayer(EntityPlayer player)
-    {
-        return this.worldObj.getTileEntity(this.pos) != this ? false : player.getDistanceSq((double) this.pos.getX() + 0.5D, (double) this.pos.getY() + 0.5D, (double) this.pos.getZ() + 0.5D) <= 64.0D;
     }
 
     @Override
@@ -272,11 +111,11 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
             this.numPlayersUsing = 0;
         }
 
-        if (!this.worldObj.isRemote && this.numPlayersUsing != 0 && (this.ticksSinceSync + i + j + k) % 200 == 0)
+        if (!this.world.isRemote && this.numPlayersUsing != 0 && (this.ticksSinceSync + i + j + k) % 200 == 0)
         {
             this.numPlayersUsing = 0;
             f = 5.0F;
-            List list = this.worldObj.getEntitiesWithinAABB(EntityPlayer.class, new AxisAlignedBB((double) ((float) i - f), (double) ((float) j - f), (double) ((float) k - f), (double) ((float) (i + 1) + f), (double) ((float) (j + 1) + f), (double) ((float) (k + 1) + f)));
+            List list = this.world.getEntitiesWithinAABB(EntityPlayer.class, new AxisAlignedBB((double) ((float) i - f), (double) ((float) j - f), (double) ((float) k - f), (double) ((float) (i + 1) + f), (double) ((float) (j + 1) + f), (double) ((float) (k + 1) + f)));
             Iterator iterator = list.iterator();
 
             while (iterator.hasNext())
@@ -304,7 +143,7 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
             double d1 = (double) i + 0.5D;
             d2 = (double) k + 0.5D;
 
-            this.worldObj.playSound(null, d1, (double)j + 0.5D, d2, SoundEvents.BLOCK_CHEST_OPEN, SoundCategory.BLOCKS, 0.5F, this.worldObj.rand.nextFloat() * 0.1F + 0.9F);
+            this.world.playSound(null, d1, (double)j + 0.5D, d2, SoundEvents.BLOCK_CHEST_OPEN, SoundCategory.BLOCKS, 0.5F, this.world.rand.nextFloat() * 0.1F + 0.9F);
         }
 
         if (((this.numPlayersUsing == 0 || this.locked) && this.lidAngle > 0.0F) || this.numPlayersUsing > 0 && this.lidAngle < 1.0F)
@@ -332,7 +171,7 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
                 d2 = (double) i + 0.5D;
                 double d0 = (double) k + 0.5D;
 
-                this.worldObj.playSound(null, d2, (double)j + 0.5D, d0, SoundEvents.BLOCK_CHEST_CLOSE, SoundCategory.BLOCKS, 0.5F, this.worldObj.rand.nextFloat() * 0.1F + 0.9F);
+                this.world.playSound(null, d2, (double)j + 0.5D, d0, SoundEvents.BLOCK_CHEST_CLOSE, SoundCategory.BLOCKS, 0.5F, this.world.rand.nextFloat() * 0.1F + 0.9F);
             }
 
             if (this.lidAngle < 0.0F)
@@ -369,9 +208,9 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
             }
 
             ++this.numPlayersUsing;
-            this.worldObj.addBlockEvent(this.pos, this.getBlockType(), 1, this.numPlayersUsing);
-            this.worldObj.notifyNeighborsOfStateChange(this.pos, this.getBlockType());
-            this.worldObj.notifyNeighborsOfStateChange(this.pos.down(), this.getBlockType());
+            this.world.addBlockEvent(this.pos, this.getBlockType(), 1, this.numPlayersUsing);
+            this.world.notifyNeighborsOfStateChange(this.pos, this.getBlockType(), false);
+            this.world.notifyNeighborsOfStateChange(this.pos.down(), this.getBlockType(), false);
         }
     }
 
@@ -381,9 +220,9 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
         if (!player.isSpectator())
         {
 //            --this.numPlayersUsing;
-//            this.worldObj.addBlockEvent(this.pos, this.getBlockType(), 1, this.numPlayersUsing);
-//            this.worldObj.notifyNeighborsOfStateChange(this.pos, this.getBlockType());
-//            this.worldObj.notifyNeighborsOfStateChange(this.pos.down(), this.getBlockType());
+//            this.world.addBlockEvent(this.pos, this.getBlockType(), 1, this.numPlayersUsing);
+//            this.world.notifyNeighborsOfStateChange(this.pos, this.getBlockType());
+//            this.world.notifyNeighborsOfStateChange(this.pos.down(), this.getBlockType());
         }
     }
 
@@ -434,21 +273,6 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
     }
 
     @Override
-    public void clear()
-    {
-        for (int i = 0; i < this.chestContents.length; ++i)
-        {
-            this.chestContents[i] = null;
-        }
-    }
-
-    @Override
-    public ITextComponent getDisplayName()
-    {
-        return (ITextComponent) (this.hasCustomName() ? new TextComponentString(this.getName()) : new TextComponentTranslation(this.getName(), new Object[0]));
-    }
-
-    @Override
     public double getPacketRange()
     {
         return 20.0D;
@@ -479,16 +303,16 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
         {
             this.locked = false;
 
-            if (this.worldObj.isRemote)
+            if (this.world.isRemote)
             {
                 // player.playSound("galacticraft.player.unlockchest", 1.0F,
                 // 1.0F);
             }
             else
             {
-                if (!player.capabilities.isCreativeMode && --player.inventory.getCurrentItem().stackSize == 0)
+                if (!player.capabilities.isCreativeMode)
                 {
-                    player.inventory.setInventorySlotContents(player.inventory.currentItem, null);
+                    player.inventory.getCurrentItem().shrink(1);
                 }
 
                 return true;
@@ -503,9 +327,9 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
     {
         if (this.locked)
         {
-            if (player.worldObj.isRemote)
+            if (player.world.isRemote)
             {
-                GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_ON_FAILED_CHEST_UNLOCK, GCCoreUtil.getDimensionID(this.worldObj), new Object[] { this.getTierOfKeyRequired() }));
+                GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_ON_FAILED_CHEST_UNLOCK, GCCoreUtil.getDimensionID(this.world), new Object[] { this.getTierOfKeyRequired() }));
             }
             return true;
         }
@@ -523,7 +347,7 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
     {
         double distance = Double.MAX_VALUE;
         TileEntityTreasureChest chest = null;
-        for (final TileEntity tile : entity.worldObj.loadedTileEntityList)
+        for (final TileEntity tile : entity.world.loadedTileEntityList)
         {
             if (tile instanceof TileEntityTreasureChest && ((TileEntityTreasureChest) tile).getTierOfKeyRequired() == tier)
             {
@@ -585,7 +409,7 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
     {
         if (this.lootTable != null)
         {
-            LootTable loottable = this.worldObj.getLootTableManager().getLootTableFromLocation(this.lootTable);
+            LootTable loottable = this.world.getLootTableManager().getLootTableFromLocation(this.lootTable);
             this.lootTable = null;
             Random random;
 
@@ -598,7 +422,7 @@ public class TileEntityTreasureChest extends TileEntityAdvanced implements ITick
                 random = new Random(this.lootTableSeed);
             }
 
-            LootContext.Builder builder = new LootContext.Builder((WorldServer)this.worldObj);
+            LootContext.Builder builder = new LootContext.Builder((WorldServer)this.world);
 
             if (player != null)
             {

@@ -9,6 +9,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
@@ -59,9 +60,10 @@ public class BlockCavernousVine extends Block implements IShearable, IShiftDescr
             return this.meta;
         }
 
+        private final static EnumVineType[] values = values();
         public static EnumVineType byMetadata(int meta)
         {
-            return values()[meta];
+            return values[meta % values.length];
         }
 
         @Override
@@ -105,13 +107,13 @@ public class BlockCavernousVine extends Block implements IShearable, IShiftDescr
     }
 
     @Override
-    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn)
+    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
     {
-        super.neighborChanged(state, worldIn, pos, blockIn);
+        super.neighborChanged(state, worldIn, pos, blockIn, fromPos);
 
-        if (!this.canBlockStay((World) worldIn, pos))
+        if (!this.canBlockStay(worldIn, pos))
         {
-            ((World) worldIn).setBlockToAir(pos);
+            worldIn.setBlockToAir(pos);
         }
     }
 
@@ -158,7 +160,13 @@ public class BlockCavernousVine extends Block implements IShearable, IShiftDescr
     }
 
     @Override
-    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, World worldIn, BlockPos pos)
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face)
+    {
+        return BlockFaceShape.UNDEFINED;
+    }
+
+    @Override
+    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, IBlockAccess worldIn, BlockPos pos)
     {
         return null;
     }
@@ -166,7 +174,7 @@ public class BlockCavernousVine extends Block implements IShearable, IShiftDescr
     @Override
     public boolean canPlaceBlockOnSide(World world, BlockPos pos, EnumFacing facing)
     {
-        return facing == EnumFacing.DOWN && this.isBlockSolid(world, pos.up(), facing);
+        return facing == EnumFacing.DOWN && world.getBlockState(pos.up()).getBlockFaceShape(world, pos.up(), facing) == BlockFaceShape.SOLID;
     }
 
     public int getVineLength(IBlockAccess world, BlockPos pos)

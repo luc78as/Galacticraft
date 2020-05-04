@@ -7,6 +7,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.StructureBoundingBox;
 import net.minecraft.world.gen.structure.StructureComponent;
+import net.minecraft.world.gen.structure.template.TemplateManager;
 
 import java.util.List;
 import java.util.Random;
@@ -45,9 +46,9 @@ public abstract class StructureComponentVillage extends StructureComponent
     }
 
     @Override
-    protected void readStructureFromNBT(NBTTagCompound nbttagcompound)
+    protected void readStructureFromNBT(NBTTagCompound nbt, TemplateManager manager)
     {
-        this.villagersSpawned = nbttagcompound.getInteger("VCount");
+        this.villagersSpawned = nbt.getInteger("VCount");
     }
 
     protected StructureComponent getNextComponentNN(StructureComponentVillageStartPiece par1ComponentVillageStartPiece, List<StructureComponent> par2List, Random par3Random, int par4, int par5)
@@ -140,7 +141,7 @@ public abstract class StructureComponentVillage extends StructureComponent
                 ++this.villagersSpawned;
                 final EntityAlienVillager var11 = new EntityAlienVillager(par1World);
                 var11.setLocationAndAngles(var8 + 0.5D, var9, var10 + 0.5D, 0.0F, 0.0F);
-                par1World.spawnEntityInWorld(var11);
+                par1World.spawnEntity(var11);
             }
         }
     }

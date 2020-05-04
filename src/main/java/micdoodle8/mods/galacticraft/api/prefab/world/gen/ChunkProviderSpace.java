@@ -33,7 +33,7 @@ public abstract class ChunkProviderSpace extends ChunkProviderBase
     private final Gradient noiseGen6;
     private final Gradient noiseGen7;
 
-    protected final World worldObj;
+    protected final World world;
 
     private Biome[] biomesForGeneration = this.getBiomesForGeneration();
 
@@ -56,7 +56,7 @@ public abstract class ChunkProviderSpace extends ChunkProviderBase
 
     public ChunkProviderSpace(World par1World, long seed, boolean mapFeaturesEnabled)
     {
-        this.worldObj = par1World;
+        this.world = par1World;
         this.rand = new Random(seed);
 
         this.noiseGen1 = new Gradient(this.rand.nextLong(), 4, 0.25F);
@@ -229,14 +229,14 @@ public abstract class ChunkProviderSpace extends ChunkProviderBase
     }
 
     @Override
-    public Chunk provideChunk(int x, int z)
+    public Chunk generateChunk(int x, int z)
     {
         ChunkPrimer primer = new ChunkPrimer();
         try {
             this.rand.setSeed(x * 341873128712L + z * 132897987541L);
             this.generateTerrain(x, z, primer);
             this.createCraters(x, z, primer);
-            this.biomesForGeneration = this.worldObj.getBiomeProvider().getBiomes(this.biomesForGeneration, x * 16, z * 16, 16, 16);
+            this.biomesForGeneration = this.world.getBiomeProvider().getBiomes(this.biomesForGeneration, x * 16, z * 16, 16, 16);
             this.replaceBiomeBlocks(x, z, primer, this.biomesForGeneration);
 
             if (this.worldGenerators == null)
@@ -246,7 +246,7 @@ public abstract class ChunkProviderSpace extends ChunkProviderBase
 
             for (MapGenBaseMeta generator : this.worldGenerators)
             {
-                generator.generate(this.worldObj, x, z, primer);
+                generator.generate(this.world, x, z, primer);
             }
 
             this.onChunkProvide(x, z, primer);
@@ -257,7 +257,7 @@ public abstract class ChunkProviderSpace extends ChunkProviderBase
             e.printStackTrace();
         }
         
-        final Chunk var4 = new Chunk(this.worldObj, primer, x, z);
+        final Chunk var4 = new Chunk(this.world, primer, x, z);
         final byte[] var5 = var4.getBiomeArray();
 
         for (int var6 = 0; var6 < var5.length; ++var6)
@@ -353,12 +353,12 @@ public abstract class ChunkProviderSpace extends ChunkProviderBase
         BlockFalling.fallInstantly = true;
         int var4 = x * 16;
         int var5 = z * 16;
-        this.worldObj.getBiome(new BlockPos(var4 + 16, 0, var5 + 16));
-        this.rand.setSeed(this.worldObj.getSeed());
+        this.world.getBiome(new BlockPos(var4 + 16, 0, var5 + 16));
+        this.rand.setSeed(this.world.getSeed());
         final long var7 = this.rand.nextLong() / 2L * 2L + 1L;
         final long var9 = this.rand.nextLong() / 2L * 2L + 1L;
-        this.rand.setSeed(x * var7 + z * var9 ^ this.worldObj.getSeed());
-        this.decoratePlanet(this.worldObj, this.rand, var4, var5);
+        this.rand.setSeed(x * var7 + z * var9 ^ this.world.getSeed());
+        this.decoratePlanet(this.world, this.rand, var4, var5);
         this.onPopulate(x, z);
 
         BlockFalling.fallInstantly = false;
@@ -367,7 +367,7 @@ public abstract class ChunkProviderSpace extends ChunkProviderBase
     @Override
     public List<Biome.SpawnListEntry> getPossibleCreatures(EnumCreatureType creatureType, BlockPos pos)
     {
-        Biome biomegenbase = this.worldObj.getBiome(pos);
+        Biome biomegenbase = this.world.getBiome(pos);
         return biomegenbase.getSpawnableList(creatureType);
     }
 

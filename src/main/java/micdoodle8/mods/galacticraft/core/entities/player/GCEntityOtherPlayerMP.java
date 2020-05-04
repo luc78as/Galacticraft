@@ -41,7 +41,7 @@ public class GCEntityOtherPlayerMP extends EntityOtherPlayerMP
         if (!this.checkedCape)
         {
             NetworkPlayerInfo networkplayerinfo = this.getPlayerInfo();
-            this.galacticraftCape = ClientProxyCore.capeMap.get(networkplayerinfo.getGameProfile().getName());
+            this.galacticraftCape = ClientProxyCore.capeMap.get(networkplayerinfo.getGameProfile().getId().toString().replace("-", ""));
             this.checkedCape = true;
         }
 
@@ -55,18 +55,18 @@ public class GCEntityOtherPlayerMP extends EntityOtherPlayerMP
 
     @Override
     @SideOnly(Side.CLIENT)
-    public int getBrightnessForRender(float partialTicks)
+    public int getBrightnessForRender()
     {
         double height = this.posY + (double)this.getEyeHeight();
         if (height > 255D) height = 255D;
         BlockPos blockpos = new BlockPos(this.posX, height, this.posZ);
-        return this.worldObj.isBlockLoaded(blockpos) ? this.worldObj.getCombinedLight(blockpos, 0) : 0;
+        return this.world.isBlockLoaded(blockpos) ? this.world.getCombinedLight(blockpos, 0) : 0;
     }
 
     @Override
     public boolean isSneaking()
     {
-        if (EventHandlerClient.sneakRenderOverride && !(this.worldObj.provider instanceof IZeroGDimension))
+        if (EventHandlerClient.sneakRenderOverride && !(this.world.provider instanceof IZeroGDimension))
         {
             if (this.onGround && this.inventory.getCurrentItem() != null && this.inventory.getCurrentItem().getItem() instanceof IHoldableItem && !(this.getRidingEntity() instanceof ICameraZoomEntity))
             {

@@ -8,6 +8,7 @@ import micdoodle8.mods.galacticraft.core.proxy.ClientProxyCore;
 import micdoodle8.mods.galacticraft.core.util.EnumColor;
 import micdoodle8.mods.galacticraft.core.util.EnumSortCategoryItem;
 import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -23,6 +24,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 public class ItemCanisterOxygenInfinite extends Item implements IItemOxygenSupply, ISortableItem
 {
     public ItemCanisterOxygenInfinite(String assetName)
@@ -36,7 +39,7 @@ public class ItemCanisterOxygenInfinite extends Item implements IItemOxygenSuppl
     }
 
     @Override
-    public boolean isItemTool(ItemStack stack)
+    public boolean isEnchantable(ItemStack stack)
     {
         return false;
     }
@@ -48,7 +51,7 @@ public class ItemCanisterOxygenInfinite extends Item implements IItemOxygenSuppl
     }
 
     @Override
-    public void addInformation(ItemStack par1ItemStack, EntityPlayer par2EntityPlayer, List<String> tooltip, boolean par4)
+    public void addInformation(ItemStack par1ItemStack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn)
     {
         tooltip.add(EnumColor.DARK_GREEN + GCCoreUtil.translate("gui.infinite_item.desc"));
         tooltip.add(EnumColor.RED + GCCoreUtil.translate("gui.creative_only.desc"));
@@ -70,9 +73,9 @@ public class ItemCanisterOxygenInfinite extends Item implements IItemOxygenSuppl
     @Override
     public ItemStack getContainerItem(ItemStack itemstack)
     {
-        if (super.getContainerItem(itemstack) == null)
+        if (super.getContainerItem(itemstack).isEmpty())
         {
-            return null;
+            return ItemStack.EMPTY;
         }
         return itemstack;
     }
@@ -103,25 +106,26 @@ public class ItemCanisterOxygenInfinite extends Item implements IItemOxygenSuppl
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(ItemStack itemStack, World worldIn, EntityPlayer player, EnumHand hand)
+    public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer player, EnumHand hand)
     {
+        ItemStack itemStack = player.getHeldItem(hand);
         if (player instanceof EntityPlayerMP)
         {
             GCPlayerStats stats = GCPlayerStats.get(player);
             ItemStack gear = stats.getExtendedInventory().getStackInSlot(2);
             ItemStack gear1 = stats.getExtendedInventory().getStackInSlot(3);
 
-            if (gear == null)
+            if (gear.isEmpty())
             {
                 stats.getExtendedInventory().setInventorySlotContents(2, itemStack.copy());
-                itemStack.stackSize = 0;
+                itemStack = ItemStack.EMPTY;
             }
-            else if (gear1 == null)
+            else if (gear1.isEmpty())
             {
                 stats.getExtendedInventory().setInventorySlotContents(3, itemStack.copy());
-                itemStack.stackSize = 0;
+                itemStack = ItemStack.EMPTY;
             }
         }
-        return new ActionResult(EnumActionResult.SUCCESS, itemStack);
+        return new ActionResult<>(EnumActionResult.SUCCESS, itemStack);
     }
 }

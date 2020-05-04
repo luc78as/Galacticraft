@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
-
 import io.netty.buffer.ByteBuf;
 import micdoodle8.mods.galacticraft.api.galaxies.CelestialBody;
 import micdoodle8.mods.galacticraft.api.galaxies.GalaxyRegistry;
@@ -26,6 +25,7 @@ import micdoodle8.mods.galacticraft.api.vector.Vector3;
 import micdoodle8.mods.galacticraft.core.Constants;
 import micdoodle8.mods.galacticraft.core.GCItems;
 import micdoodle8.mods.galacticraft.core.GalacticraftCore;
+import micdoodle8.mods.galacticraft.core.advancement.GCTriggers;
 import micdoodle8.mods.galacticraft.core.blocks.BlockPanelLighting;
 import micdoodle8.mods.galacticraft.core.blocks.BlockSpaceGlass;
 import micdoodle8.mods.galacticraft.core.client.FootprintRenderer;
@@ -125,7 +125,8 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
         S_REMOVE_RACE_PLAYER(Side.SERVER, String.class, Integer.class),
         S_ADD_RACE_PLAYER(Side.SERVER, String.class, Integer.class),
         S_COMPLETE_CBODY_HANDSHAKE(Side.SERVER, String.class),
-        S_REQUEST_GEAR_DATA(Side.SERVER, String.class),
+        S_REQUEST_GEAR_DATA1(Side.SERVER, UUID.class),
+        S_REQUEST_GEAR_DATA2(Side.SERVER, UUID.class),
         S_REQUEST_OVERWORLD_IMAGE(Side.SERVER),
         S_REQUEST_MAP_IMAGE(Side.SERVER, Integer.class, Integer.class, Integer.class),
         S_REQUEST_PLAYERSKIN(Side.SERVER, String.class),
@@ -270,6 +271,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
         {
             System.err.println("[Galacticraft] Error handling simple packet type: " + this.type.toString() + " " + buffer.toString());
             e.printStackTrace();
+            throw e;
         }
     }
 
@@ -358,7 +360,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
                     }
                 }
 
-                if (FMLClientHandler.instance().getClient().theWorld != null)
+                if (FMLClientHandler.instance().getClient().world != null)
                 {
                     if (!(FMLClientHandler.instance().getClient().currentScreen instanceof GuiCelestialSelection))
                     {
@@ -384,9 +386,9 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
 
             for (int i = 0; i < 4; i++)
             {
-                if (mc.getRenderViewEntity() != null && mc.effectRenderer != null && mc.theWorld != null)
+                if (mc.getRenderViewEntity() != null && mc.effectRenderer != null && mc.world != null)
                 {
-                    final ParticleSparks fx = new ParticleSparks(mc.theWorld, pos.getX() - 0.15 + 0.5, pos.getY() + 1.2, pos.getZ() + 0.15 + 0.5, mc.theWorld.rand.nextDouble() / 20 - mc.theWorld.rand.nextDouble() / 20, mc.theWorld.rand.nextDouble() / 20 - mc.theWorld.rand.nextDouble() / 20);
+                    final ParticleSparks fx = new ParticleSparks(mc.world, pos.getX() - 0.15 + 0.5, pos.getY() + 1.2, pos.getZ() + 0.15 + 0.5, mc.world.rand.nextDouble() / 20 - mc.world.rand.nextDouble() / 20, mc.world.rand.nextDouble() / 20 - mc.world.rand.nextDouble() / 20);
 
                     mc.effectRenderer.addEffect(fx);
                 }
@@ -396,24 +398,25 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             int subtype = (Integer) this.data.get(3);
             String gearName = (String) this.data.get(0);
 
-            EntityPlayer gearDataPlayer = player.worldObj.getPlayerEntityByName(gearName);
+            EntityPlayer gearDataPlayer = player.world.getPlayerEntityByName(gearName);
 
             if (gearDataPlayer != null)
             {
                 PlayerGearData gearData = ClientProxyCore.playerItemData.get(PlayerUtil.getName(gearDataPlayer));
+                UUID gearDataPlayerID = gearDataPlayer.getUniqueID();
 
                 if (gearData == null)
                 {
                     gearData = new PlayerGearData(player);
-                    if (!ClientProxyCore.gearDataRequests.contains(gearName))
+                    if (!ClientProxyCore.gearDataRequests.contains(gearDataPlayerID))
                     {
-                        GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_REQUEST_GEAR_DATA, getDimensionID(), new Object[] { gearName }));
-                        ClientProxyCore.gearDataRequests.add(gearName);
+                        GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(PacketSimple.EnumSimplePacket.S_REQUEST_GEAR_DATA1, getDimensionID(), new Object[] { gearDataPlayerID }));
+                        ClientProxyCore.gearDataRequests.add(gearDataPlayerID);
                     }
                 }
                 else
                 {
-                    ClientProxyCore.gearDataRequests.remove(gearName);
+                    ClientProxyCore.gearDataRequests.remove(gearDataPlayerID);
                 }
 
                 EnumExtendedInventorySlot type = EnumExtendedInventorySlot.values()[(Integer) this.data.get(2)];
@@ -485,7 +488,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             WorldUtil.decodeSpaceStationListClient(data);
             break;
         case C_UPDATE_SPACESTATION_DATA:
-            SpaceStationWorldData var4 = SpaceStationWorldData.getMPSpaceStationData(player.worldObj, (Integer) this.data.get(0), player);
+            SpaceStationWorldData var4 = SpaceStationWorldData.getMPSpaceStationData(player.world, (Integer) this.data.get(0), player);
             var4.readFromNBT((NBTTagCompound) this.data.get(1));
             break;
         case C_UPDATE_SPACESTATION_CLIENT_ID:
@@ -548,7 +551,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
                 break;
             case 1:
                 int entityID = (Integer) this.data.get(2);
-                Entity entity = player.worldObj.getEntityByID(entityID);
+                Entity entity = player.world.getEntityByID(entityID);
 
                 if (entity != null && entity instanceof IInventorySettable)
                 {
@@ -560,19 +563,19 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             break;
         case C_UPDATE_WIRE_BOUNDS:
-            TileEntity tile = player.worldObj.getTileEntity((BlockPos) this.data.get(0));
+            TileEntity tile = player.world.getTileEntity((BlockPos) this.data.get(0));
 
             if (tile instanceof TileBaseConductor)
             {
                 ((TileBaseConductor) tile).adjacentConnections = null;
-//                player.worldObj.getBlockState(tile.getPos()).getBlock().setBlockBoundsBasedOnState(player.worldObj, tile.getPos()); TODO
+//                player.world.getBlockState(tile.getPos()).getBlock().setBlockBoundsBasedOnState(player.world, tile.getPos()); TODO
             }
             break;
         case C_OPEN_SPACE_RACE_GUI:
             if (Minecraft.getMinecraft().currentScreen == null)
             {
                 TickHandlerClient.spaceRaceGuiScheduled = false;
-                player.openGui(GalacticraftCore.instance, GuiIdsCore.SPACE_RACE_START, player.worldObj, (int) player.posX, (int) player.posY, (int) player.posZ);
+                player.openGui(GalacticraftCore.instance, GuiIdsCore.SPACE_RACE_START, player.world, (int) player.posX, (int) player.posY, (int) player.posZ);
             }
             else
             {
@@ -599,7 +602,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             break;
         case C_OPEN_JOIN_RACE_GUI:
             stats.setSpaceRaceInviteTeamID((Integer) this.data.get(0));
-            player.openGui(GalacticraftCore.instance, GuiIdsCore.SPACE_RACE_JOIN, player.worldObj, (int) player.posX, (int) player.posY, (int) player.posZ);
+            player.openGui(GalacticraftCore.instance, GuiIdsCore.SPACE_RACE_JOIN, player.world, (int) player.posX, (int) player.posY, (int) player.posZ);
             break;
         case C_UPDATE_DUNGEON_DIRECTION:
             stats.setDungeonDirection((Float) this.data.get(0));
@@ -642,21 +645,21 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             break;
         case C_UPDATE_STATION_SPIN:
-            if (playerBaseClient.worldObj.provider instanceof WorldProviderSpaceStation)
+            if (playerBaseClient.world.provider instanceof WorldProviderSpaceStation)
             {
-                ((WorldProviderSpaceStation) playerBaseClient.worldObj.provider).getSpinManager().setSpinRate((Float) this.data.get(0), (Boolean) this.data.get(1));
+                ((WorldProviderSpaceStation) playerBaseClient.world.provider).getSpinManager().setSpinRate((Float) this.data.get(0), (Boolean) this.data.get(1));
             }
             break;
         case C_UPDATE_STATION_DATA:
-            if (playerBaseClient.worldObj.provider instanceof WorldProviderSpaceStation)
+            if (playerBaseClient.world.provider instanceof WorldProviderSpaceStation)
             {
-                ((WorldProviderSpaceStation) playerBaseClient.worldObj.provider).getSpinManager().setSpinCentre((Double) this.data.get(0), (Double) this.data.get(1));
+                ((WorldProviderSpaceStation) playerBaseClient.world.provider).getSpinManager().setSpinCentre((Double) this.data.get(0), (Double) this.data.get(1));
             }
             break;
         case C_UPDATE_STATION_BOX:
-            if (playerBaseClient.worldObj.provider instanceof WorldProviderSpaceStation)
+            if (playerBaseClient.world.provider instanceof WorldProviderSpaceStation)
             {
-                ((WorldProviderSpaceStation) playerBaseClient.worldObj.provider).getSpinManager().setSpinBox((Integer) this.data.get(0), (Integer) this.data.get(1), (Integer) this.data.get(2), (Integer) this.data.get(3), (Integer) this.data.get(4), (Integer) this.data.get(5));
+                ((WorldProviderSpaceStation) playerBaseClient.world.provider).getSpinManager().setSpinBox((Integer) this.data.get(0), (Integer) this.data.get(1), (Integer) this.data.get(2), (Integer) this.data.get(3), (Integer) this.data.get(4), (Integer) this.data.get(5));
             }
             break;
         case C_UPDATE_THERMAL_LEVEL:
@@ -664,10 +667,10 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             stats.setThermalLevelNormalising((Boolean) this.data.get(1));
             break;
         case C_DISPLAY_ROCKET_CONTROLS:
-            player.addChatMessage(new TextComponentString(GameSettings.getKeyDisplayString(KeyHandlerClient.spaceKey.getKeyCode()) + "  - " + GCCoreUtil.translate("gui.rocket.launch.name")));
-            player.addChatMessage(new TextComponentString(GameSettings.getKeyDisplayString(KeyHandlerClient.leftKey.getKeyCode()) + " / " + GameSettings.getKeyDisplayString(KeyHandlerClient.rightKey.getKeyCode()) + "  - " + GCCoreUtil.translate("gui.rocket.turn.name")));
-            player.addChatMessage(new TextComponentString(GameSettings.getKeyDisplayString(KeyHandlerClient.accelerateKey.getKeyCode()) + " / " + GameSettings.getKeyDisplayString(KeyHandlerClient.decelerateKey.getKeyCode()) + "  - " + GCCoreUtil.translate("gui.rocket.updown.name")));
-            player.addChatMessage(new TextComponentString(GameSettings.getKeyDisplayString(KeyHandlerClient.openFuelGui.getKeyCode()) + "       - " + GCCoreUtil.translate("gui.rocket.inv.name")));
+            player.sendMessage(new TextComponentString(GameSettings.getKeyDisplayString(KeyHandlerClient.spaceKey.getKeyCode()) + "  - " + GCCoreUtil.translate("gui.rocket.launch.name")));
+            player.sendMessage(new TextComponentString(GameSettings.getKeyDisplayString(KeyHandlerClient.leftKey.getKeyCode()) + " / " + GameSettings.getKeyDisplayString(KeyHandlerClient.rightKey.getKeyCode()) + "  - " + GCCoreUtil.translate("gui.rocket.turn.name")));
+            player.sendMessage(new TextComponentString(GameSettings.getKeyDisplayString(KeyHandlerClient.accelerateKey.getKeyCode()) + " / " + GameSettings.getKeyDisplayString(KeyHandlerClient.decelerateKey.getKeyCode()) + "  - " + GCCoreUtil.translate("gui.rocket.updown.name")));
+            player.sendMessage(new TextComponentString(GameSettings.getKeyDisplayString(KeyHandlerClient.openFuelGui.getKeyCode()) + "       - " + GCCoreUtil.translate("gui.rocket.inv.name")));
             break;
         case C_GET_CELESTIAL_BODY_LIST:
             String str = "";
@@ -714,7 +717,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             BlockPanelLighting.updateClient(this.data);
             break;
         case C_UPDATE_TELEMETRY:
-            tile = player.worldObj.getTileEntity((BlockPos) this.data.get(0));
+            tile = player.world.getTileEntity((BlockPos) this.data.get(0));
             if (tile instanceof TileEntityTelemetry)
             {
                 ((TileEntityTelemetry) tile).receiveUpdate(data, this.getDimensionID());
@@ -746,7 +749,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             break;
         case C_RECOLOR_PIPE:
-            TileEntity tileEntity = player.worldObj.getTileEntity((BlockPos) this.data.get(0));
+            TileEntity tileEntity = player.world.getTileEntity((BlockPos) this.data.get(0));
             if (tileEntity instanceof TileEntityFluidPipe)
             {
                 TileEntityFluidPipe pipe = (TileEntityFluidPipe) tileEntity;
@@ -758,22 +761,22 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             BlockSpaceGlass.updateGlassColors((Integer) this.data.get(0), (Integer) this.data.get(1), (Integer) this.data.get(2));
             break;
         case C_UPDATE_MACHINE_DATA:
-            TileEntity tile3 = player.worldObj.getTileEntity((BlockPos) this.data.get(0));
+            TileEntity tile3 = player.world.getTileEntity((BlockPos) this.data.get(0));
             if (tile3 instanceof ITileClientUpdates)
             {
                 ((ITileClientUpdates)tile3).updateClient(this.data);
             }
             break;
         case C_LEAK_DATA:
-            TileEntity tile4 = player.worldObj.getTileEntity((BlockPos) this.data.get(0));
+            TileEntity tile4 = player.world.getTileEntity((BlockPos) this.data.get(0));
             if (tile4 instanceof TileEntityOxygenSealer)
             {
                 ((ITileClientUpdates)tile4).updateClient(this.data);
             }
             break;
         case C_SPAWN_HANGING_SCHEMATIC:
-            EntityHangingSchematic entity = new EntityHangingSchematic(player.worldObj, (BlockPos) this.data.get(0), EnumFacing.getFront((Integer) this.data.get(2)), (Integer) this.data.get(3));
-            ((WorldClient)player.worldObj).addEntityToWorld((Integer) this.data.get(1), entity);
+            EntityHangingSchematic entity = new EntityHangingSchematic(player.world, (BlockPos) this.data.get(0), EnumFacing.getFront((Integer) this.data.get(2)), (Integer) this.data.get(3));
+            ((WorldClient)player.world).addEntityToWorld((Integer) this.data.get(1), entity);
             break;
         default:
             break;
@@ -796,13 +799,13 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
         switch (this.type)
         {
         case S_RESPAWN_PLAYER:
-            playerBase.connection.sendPacket(new SPacketRespawn(player.dimension, player.worldObj.getDifficulty(), player.worldObj.getWorldInfo().getTerrainType(), playerBase.interactionManager.getGameType()));
+            playerBase.connection.sendPacket(new SPacketRespawn(player.dimension, player.world.getDifficulty(), player.world.getWorldInfo().getTerrainType(), playerBase.interactionManager.getGameType()));
             break;
         case S_TELEPORT_ENTITY:
             TickHandlerServer.scheduleNewDimensionChange(new ScheduledDimensionChange(playerBase, (String) PacketSimple.this.data.get(0)));
             break;
         case S_IGNITE_ROCKET:
-            if (!player.worldObj.isRemote && !player.isDead && player.getRidingEntity() != null && !player.getRidingEntity().isDead && player.getRidingEntity() instanceof EntityTieredRocket)
+            if (!player.world.isRemote && !player.isDead && player.getRidingEntity() != null && !player.getRidingEntity().isDead && player.getRidingEntity() instanceof EntityTieredRocket)
             {
                 final EntityTieredRocket ship = (EntityTieredRocket) player.getRidingEntity();
 
@@ -819,14 +822,14 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
                         }
                         else if (stats.getChatCooldown() == 0 && stats.getLaunchAttempts() == 0)
                         {
-                            player.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.rocket.warning.noparachute")));
+                            player.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.rocket.warning.noparachute")));
                             stats.setChatCooldown(250);
                             stats.setLaunchAttempts(1);
                         }
                     }
                     else if (stats.getChatCooldown() == 0)
                     {
-                        player.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.rocket.warning.nofuel")));
+                        player.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.rocket.warning.nofuel")));
                         stats.setChatCooldown(250);
                     }
                 }
@@ -837,7 +840,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             {
                 final ISchematicPage page = SchematicRegistry.getMatchingRecipeForID((Integer) this.data.get(0));
 
-                player.openGui(GalacticraftCore.instance, page.getGuiID(), player.worldObj, (Integer) this.data.get(1), (Integer) this.data.get(2), (Integer) this.data.get(3));
+                player.openGui(GalacticraftCore.instance, page.getGuiID(), player.world, (Integer) this.data.get(1), (Integer) this.data.get(2), (Integer) this.data.get(3));
             }
             break;
         case S_OPEN_FUEL_GUI:
@@ -847,7 +850,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             else if (player.getRidingEntity() instanceof EntitySpaceshipBase)
             {
-                player.openGui(GalacticraftCore.instance, GuiIdsCore.ROCKET_INVENTORY, player.worldObj, (int) player.posX, (int) player.posY, (int) player.posZ);
+                player.openGui(GalacticraftCore.instance, GuiIdsCore.ROCKET_INVENTORY, player.world, (int) player.posX, (int) player.posY, (int) player.posZ);
             }
             break;
         case S_UPDATE_SHIP_YAW:
@@ -873,7 +876,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             break;
         case S_SET_ENTITY_FIRE:
-            Entity entity = player.worldObj.getEntityByID((Integer) this.data.get(0));
+            Entity entity = player.world.getEntityByID((Integer) this.data.get(0));
 
             if (entity instanceof EntityLivingBase)
             {
@@ -887,7 +890,8 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             {
                 if (playerBase.capabilities.isCreativeMode || WorldUtil.getSpaceStationRecipe(homeID).matches(playerBase, true))
                 {
-                    WorldUtil.bindSpaceStationToNewDimension(playerBase.worldObj, playerBase, homeID);
+                    GCTriggers.CREATE_SPACE_STATION.trigger(playerBase);
+                    WorldUtil.bindSpaceStationToNewDimension(playerBase.world, playerBase, homeID);
                 }
             }
             break;
@@ -900,7 +904,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
 
                 ItemStack stack = schematicContainer.craftMatrix.getStackInSlot(0);
 
-                if (stack != null)
+                if (!stack.isEmpty())
                 {
                     final ISchematicPage page = SchematicRegistry.getMatchingRecipeForItemStack(stack);
 
@@ -908,10 +912,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
                     {
                         SchematicRegistry.unlockNewPage(playerBase, stack);
                         SpaceRaceManager.teamUnlockSchematic(playerBase, stack);
-                        if (--stack.stackSize <= 0)
-                        {
-                            stack = null;
-                        }
+                        stack.shrink(1);
 
                         schematicContainer.craftMatrix.setInventorySlotContents(0, stack);
                         schematicContainer.craftMatrix.markDirty();
@@ -922,7 +923,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             break;
         case S_UPDATE_DISABLEABLE_BUTTON:
-            final TileEntity tileAt = player.worldObj.getTileEntity((BlockPos) this.data.get(0));
+            final TileEntity tileAt = player.world.getTileEntity((BlockPos) this.data.get(0));
 
             if (tileAt instanceof IDisableableMachine)
             {
@@ -934,12 +935,12 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
         case S_ON_FAILED_CHEST_UNLOCK:
             if (stats.getChatCooldown() == 0)
             {
-                player.addChatMessage(new TextComponentString(GCCoreUtil.translateWithFormat("gui.chest.warning.wrongkey", this.data.get(0))));
+                player.sendMessage(new TextComponentString(GCCoreUtil.translateWithFormat("gui.chest.warning.wrongkey", this.data.get(0))));
                 stats.setChatCooldown(100);
             }
             break;
         case S_RENAME_SPACE_STATION:
-            final SpaceStationWorldData ssdata = SpaceStationWorldData.getStationData(playerBase.worldObj, (Integer) this.data.get(1), playerBase);
+            final SpaceStationWorldData ssdata = SpaceStationWorldData.getStationData(playerBase.world, (Integer) this.data.get(1), playerBase);
 
             if (ssdata != null && ssdata.getOwner().equalsIgnoreCase(PlayerUtil.getName(player)))
             {
@@ -948,10 +949,10 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             break;
         case S_OPEN_EXTENDED_INVENTORY:
-            player.openGui(GalacticraftCore.instance, GuiIdsCore.EXTENDED_INVENTORY, player.worldObj, 0, 0, 0);
+            player.openGui(GalacticraftCore.instance, GuiIdsCore.EXTENDED_INVENTORY, player.world, 0, 0, 0);
             break;
         case S_ON_ADVANCED_GUI_CLICKED_INT:
-            TileEntity tile1 = player.worldObj.getTileEntity((BlockPos) this.data.get(1));
+            TileEntity tile1 = player.world.getTileEntity((BlockPos) this.data.get(1));
 
             switch ((Integer) this.data.get(0))
             {
@@ -1010,7 +1011,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             break;
         case S_ON_ADVANCED_GUI_CLICKED_STRING:
-            TileEntity tile2 = player.worldObj.getTileEntity((BlockPos) this.data.get(1));
+            TileEntity tile2 = player.world.getTileEntity((BlockPos) this.data.get(1));
 
             switch ((Integer) this.data.get(0))
             {
@@ -1029,7 +1030,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             int entityID = (Integer) this.data.get(0);
             boolean up = (Boolean) this.data.get(1);
 
-            Entity entity2 = player.worldObj.getEntityByID(entityID);
+            Entity entity2 = player.world.getEntityByID(entityID);
 
             if (entity2 instanceof EntityAutoRocket)
             {
@@ -1088,7 +1089,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
                     {
                         teamNameTotal = teamNameTotal.concat(dB + teamNamePart + " ");
                     }
-                    playerInvited.addChatMessage(new TextComponentString(dA + GCCoreUtil.translateWithFormat("gui.space_race.chat.invite_received", bG + PlayerUtil.getName(player) + dA) + "  " + GCCoreUtil.translateWithFormat("gui.space_race.chat.to_join", teamNameTotal, EnumColor.AQUA + "/joinrace" + dA)).setStyle(new Style().setColor(TextFormatting.DARK_AQUA)));
+                    playerInvited.sendMessage(new TextComponentString(dA + GCCoreUtil.translateWithFormat("gui.space_race.chat.invite_received", bG + PlayerUtil.getName(player) + dA) + "  " + GCCoreUtil.translateWithFormat("gui.space_race.chat.to_join", teamNameTotal, EnumColor.AQUA + "/joinrace" + dA)).setStyle(new Style().setColor(TextFormatting.DARK_AQUA)));
                 }
             }
             break;
@@ -1102,7 +1103,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
 
                 if (!race.getPlayerNames().remove(playerToRemove))
                 {
-                    player.addChatMessage(new TextComponentString(GCCoreUtil.translateWithFormat("gui.space_race.chat.not_found", playerToRemove)));
+                    player.sendMessage(new TextComponentString(GCCoreUtil.translateWithFormat("gui.space_race.chat.not_found", playerToRemove)));
                 }
                 else
                 {
@@ -1135,13 +1136,13 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
 
                         if (memberObj != null)
                         {
-                            memberObj.addChatMessage(new TextComponentString(EnumColor.DARK_AQUA + GCCoreUtil.translateWithFormat("gui.space_race.chat.add_success", EnumColor.BRIGHT_GREEN + playerToAdd + EnumColor.DARK_AQUA)).setStyle(new Style().setColor(TextFormatting.DARK_AQUA)));
+                            memberObj.sendMessage(new TextComponentString(EnumColor.DARK_AQUA + GCCoreUtil.translateWithFormat("gui.space_race.chat.add_success", EnumColor.BRIGHT_GREEN + playerToAdd + EnumColor.DARK_AQUA)).setStyle(new Style().setColor(TextFormatting.DARK_AQUA)));
                         }
                     }
                 }
                 else
                 {
-                    player.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.space_race.chat.already_part")).setStyle(new Style().setColor(TextFormatting.DARK_RED)));
+                    player.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.space_race.chat.already_part")).setStyle(new Style().setColor(TextFormatting.DARK_RED)));
                 }
             }
             break;
@@ -1181,16 +1182,20 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
 
             if (missingObjects.length() > 0)
             {
-                playerBase.connection.kickPlayerFromServer("Missing Galacticraft Celestial Objects:\n\n " + missingObjects);
+                playerBase.connection.disconnect(new TextComponentString("Missing Galacticraft Celestial Objects:\n\n " + missingObjects));
             }
 
             break;
-        case S_REQUEST_GEAR_DATA:
-            String name = (String) this.data.get(0);
-            EntityPlayerMP e = PlayerUtil.getPlayerBaseServerFromPlayerUsername(name, true);
-            if (e != null)
+        case S_REQUEST_GEAR_DATA1:
+        case S_REQUEST_GEAR_DATA2:
+            UUID id = (UUID) this.data.get(0);
+            if (id != null)
             {
-                GCPlayerHandler.checkGear(e, GCPlayerStats.get(e), true);
+                EntityPlayer otherPlayer = player.world.getPlayerEntityByUUID(id);
+                if (otherPlayer instanceof EntityPlayerMP)
+                {
+                    GCPlayerHandler.checkGear((EntityPlayerMP) otherPlayer, GCPlayerStats.get(otherPlayer), true);
+                }
             }
             break;
         case S_BUILDFLAGS_UPDATE:
@@ -1203,7 +1208,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             int dim = (Integer) this.data.get(0);
             int cx = (Integer) this.data.get(1);
             int cz = (Integer) this.data.get(2);
-            MapUtil.sendOrCreateMap(WorldUtil.getProviderForDimensionServer(dim).worldObj, cx, cz, playerBase);
+            MapUtil.sendOrCreateMap(WorldUtil.getProviderForDimensionServer(dim).world, cx, cz, playerBase);
             break;
         case S_REQUEST_PLAYERSKIN:
             String strName = (String) this.data.get(0);
@@ -1275,7 +1280,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             break;
         case S_REQUEST_DATA:
-            WorldServer worldServer = server.worldServerForDimension((Integer) this.data.get(0));
+            WorldServer worldServer = server.getWorld((Integer) this.data.get(0));
             if (worldServer != null)
             {
                 TileEntity requestedTile = worldServer.getTileEntity((BlockPos) this.data.get(1));
@@ -1307,7 +1312,7 @@ public class PacketSimple extends PacketBase implements Packet<INetHandler>
             }
             break;
         case S_REQUEST_MACHINE_DATA:
-            TileEntity tile3 = player.worldObj.getTileEntity((BlockPos) this.data.get(0));
+            TileEntity tile3 = player.world.getTileEntity((BlockPos) this.data.get(0));
             if (tile3 instanceof ITileClientUpdates)
             {
                 ((ITileClientUpdates)tile3).sendUpdateToClient(playerBase);

@@ -40,12 +40,12 @@ public class EntityProjectileTNT extends EntityFireball
     @Override
     protected void onImpact(RayTraceResult movingObjectPosition)
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             if (movingObjectPosition.entityHit != null && !(movingObjectPosition.entityHit instanceof EntityCreeper))
             {
                 float difficulty = 0;
-                switch (this.worldObj.getDifficulty())
+                switch (this.world.getDifficulty())
                 {
                 case HARD : difficulty = 2F;
                     break;
@@ -55,7 +55,7 @@ public class EntityProjectileTNT extends EntityFireball
                 movingObjectPosition.entityHit.attackEntityFrom(DamageSource.causeFireballDamage(this, this.shootingEntity), 6.0F + 3.0F * difficulty);
             }
 
-            this.worldObj.newExplosion((Entity) null, this.posX, this.posY, this.posZ, 1.0F, false, this.worldObj.getGameRules().getBoolean("mobGriefing"));
+            this.world.newExplosion((Entity) null, this.posX, this.posY, this.posZ, 1.0F, false, this.world.getGameRules().getBoolean("mobGriefing"));
             this.setDead();
         }
     }

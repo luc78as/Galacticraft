@@ -123,8 +123,8 @@ public class NetworkUtil
             }
             else if (dataValue instanceof UUID)
             {
-                buffer.writeLong(((UUID) dataValue).getLeastSignificantBits());
                 buffer.writeLong(((UUID) dataValue).getMostSignificantBits());
+                buffer.writeLong(((UUID) dataValue).getLeastSignificantBits());
             }
             else if (dataValue instanceof Collection)
             {
@@ -452,7 +452,7 @@ public class NetworkUtil
 
     public static ItemStack readItemStack(ByteBuf buffer) throws IOException
     {
-        ItemStack itemstack = null;
+        ItemStack itemstack = ItemStack.EMPTY;
         short itemID = buffer.readShort();
 
         if (itemID >= 0)
@@ -471,14 +471,14 @@ public class NetworkUtil
 
     public static void writeItemStack(ItemStack itemStack, ByteBuf buffer) throws IOException
     {
-        if (itemStack == null)
+        if (itemStack.isEmpty())
         {
             buffer.writeShort(-1);
         }
         else
         {
             buffer.writeShort(Item.getIdFromItem(itemStack.getItem()));
-            buffer.writeByte(itemStack.stackSize);
+            buffer.writeByte(itemStack.getCount());
             buffer.writeShort(itemStack.getItemDamage());
             NBTTagCompound nbttagcompound = null;
 

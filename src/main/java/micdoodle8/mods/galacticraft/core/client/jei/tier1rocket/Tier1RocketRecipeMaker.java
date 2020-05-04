@@ -4,6 +4,7 @@ import micdoodle8.mods.galacticraft.api.GalacticraftRegistry;
 import micdoodle8.mods.galacticraft.api.recipe.INasaWorkbenchRecipe;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.Ingredient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,9 +12,9 @@ import java.util.Map.Entry;
 
 public class Tier1RocketRecipeMaker
 {
-    public static List<Tier1RocketRecipeWrapper> getRecipesList()
+     public static List<INasaWorkbenchRecipe> getRecipesList()
     {
-        List<Tier1RocketRecipeWrapper> recipes = new ArrayList<>();
+        List<INasaWorkbenchRecipe> recipes = new ArrayList<>();
 
         int chestCount = -1;
         for (INasaWorkbenchRecipe recipe : GalacticraftRegistry.getRocketT1Recipes())
@@ -22,8 +23,7 @@ public class Tier1RocketRecipeMaker
             if (chests == chestCount)
                 continue;
             chestCount = chests;
-            Tier1RocketRecipeWrapper wrapper = new Tier1RocketRecipeWrapper(recipe);
-            recipes.add(wrapper);
+            recipes.add(recipe);
         }
 
         return recipes;
@@ -33,9 +33,9 @@ public class Tier1RocketRecipeMaker
     {
         int count = 0;
         ItemStack chest = new ItemStack(Blocks.CHEST);
-        for (Entry<Integer, ItemStack> e : recipe.getRecipeInput().entrySet())
+        for (Entry<Integer, Ingredient> e : recipe.getRecipeInput().entrySet())
         {
-            if (ItemStack.areItemsEqual(chest, e.getValue()))
+            if (e.getValue().apply(chest))
                 count++;
         }
         return count;

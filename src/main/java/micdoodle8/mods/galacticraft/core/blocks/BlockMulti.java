@@ -14,6 +14,7 @@ import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.properties.PropertyEnum;
 import net.minecraft.block.properties.PropertyInteger;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.particle.ParticleManager;
@@ -51,6 +52,7 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
     protected static final AxisAlignedBB AABB_SOLAR = new AxisAlignedBB(0.0F, 0.2F, 0.0F, 1.0F, 0.8F, 1.0F);
     protected static final AxisAlignedBB AABB_SOLAR_POLE = new AxisAlignedBB(0.3F, 0.0F, 0.3F, 0.7F, 1.0F, 0.7F);
     protected static final AxisAlignedBB AABB_SOLAR_TOP = new AxisAlignedBB(0.3F, 0.0F, 0.3F, 0.7F, 0.6F, 0.7F);
+    protected static final AxisAlignedBB AABB_TURRET = new AxisAlignedBB(0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 1.0F);
 
     public enum EnumBlockMultiType implements IStringSerializable
     {
@@ -62,7 +64,8 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
         CRYO_CHAMBER(5, "cryo_chamber"),
         BUGGY_FUEL_PAD(6, "buggy_pad"),
         MINER_BASE(7, "miner_base"),  //UNUSED
-        DISH_LARGE(8, "dish_large");
+        DISH_LARGE(8, "dish_large"),
+        LASER_TURRET(9, "laser_turret");
 
         private final int meta;
         private final String name;
@@ -78,9 +81,10 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
             return this.meta;
         }
 
+        private final static EnumBlockMultiType[] values = values();
         public static EnumBlockMultiType byMetadata(int meta)
         {
-            return values()[meta];
+            return values[meta % values.length];
         }
 
         @Override
@@ -115,6 +119,8 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
         case ROCKET_PAD:
         case BUGGY_FUEL_PAD:
             return AABB_PAD;
+        case LASER_TURRET:
+            return AABB_TURRET;
         default:
             return FULL_BLOCK_AABB;
         }
@@ -124,6 +130,12 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
     public boolean isOpaqueCube(IBlockState state)
     {
         return false;
+    }
+
+    @Override
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face)
+    {
+        return BlockFaceShape.UNDEFINED;
     }
 
 //    @Override
@@ -173,7 +185,7 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
 //    }
 //
 //    @Override
-//    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, World worldIn, BlockPos pos)
+//    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, IBlockAccess worldIn, BlockPos pos)
 //    {
 //        this.setBlockBoundsBasedOnState(worldIn, pos);
 //        return super.getCollisionBoundingBox(worldIn, pos, state);
@@ -273,7 +285,7 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
     public boolean onUseWrench(World world, BlockPos pos, EntityPlayer entityPlayer, EnumHand hand, ItemStack heldItem, EnumFacing side, float hitX, float hitY, float hitZ)
     {
         TileEntityMulti tileEntity = (TileEntityMulti) world.getTileEntity(pos);
-        return tileEntity.onBlockWrenched(world, pos, entityPlayer, hand, heldItem, side, hitX, hitY, hitZ);
+        return tileEntity.onBlockWrenched(world, pos, entityPlayer, hand, side, hitX, hitY, hitZ);
     }
 
     /**
@@ -322,7 +334,7 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
             }
         }
 
-        return null;
+        return ItemStack.EMPTY;
     }
 
     @Override
@@ -429,7 +441,7 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
 
     private static boolean hasRoomForPlayer(World worldIn, BlockPos pos)
     {
-        return worldIn.getBlockState(pos.down()).isFullyOpaque() && !worldIn.getBlockState(pos).getMaterial().isSolid() && !worldIn.getBlockState(pos.up()).getMaterial().isSolid();
+        return worldIn.getBlockState(pos.down()).isSideSolid(worldIn, pos.down(), EnumFacing.UP) && !worldIn.getBlockState(pos).getMaterial().isSolid() && !worldIn.getBlockState(pos.up()).getMaterial().isSolid();
     }
 
     @Override
@@ -530,7 +542,7 @@ public class BlockMulti extends BlockAdvanced implements IPartialSealableBlock, 
                 if (!worldIn.isRemote && placer instanceof EntityPlayerMP)
                 {
                     EntityPlayerMP player = (EntityPlayerMP) placer;
-                    player.addChatMessage(new TextComponentString(EnumColor.RED + GCCoreUtil.translate("gui.warning.noroom")));
+                    player.sendMessage(new TextComponentString(EnumColor.RED + GCCoreUtil.translate("gui.warning.noroom")));
                     if (!player.capabilities.isCreativeMode)
                     {
                         final ItemStack nasaWorkbench = new ItemStack(callingBlock, 1, 0);

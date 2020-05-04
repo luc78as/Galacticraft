@@ -19,9 +19,9 @@ import java.util.*;
 public class CommandSpaceStationRemoveOwner extends CommandBase
 {
     @Override
-    public String getCommandUsage(ICommandSender var1)
+    public String getUsage(ICommandSender var1)
     {
-        return "/" + this.getCommandName() + " <player>";
+        return "/" + this.getName() + " <player>";
     }
 
     @Override
@@ -37,7 +37,7 @@ public class CommandSpaceStationRemoveOwner extends CommandBase
     }
 
     @Override
-    public String getCommandName()
+    public String getName()
     {
         return "ssuninvite";
     }
@@ -68,7 +68,7 @@ public class CommandSpaceStationRemoveOwner extends CommandBase
                     {
                         for (Map.Entry<Integer, Integer> e : stats.getSpaceStationDimensionData().entrySet())
                         {
-                            final SpaceStationWorldData data = SpaceStationWorldData.getStationData(playerBase.worldObj, e.getValue(), playerBase);
+                            final SpaceStationWorldData data = SpaceStationWorldData.getStationData(playerBase.world, e.getValue(), playerBase);
 
                             String str = null;
                             for (String name : data.getAllowedPlayers())
@@ -101,18 +101,18 @@ public class CommandSpaceStationRemoveOwner extends CommandBase
         }
         else
         {
-            throw new WrongUsageException(GCCoreUtil.translateWithFormat("commands.ssinvite.wrong_usage", this.getCommandUsage(sender)), new Object[0]);
+            throw new WrongUsageException(GCCoreUtil.translateWithFormat("commands.ssinvite.wrong_usage", this.getUsage(sender)), new Object[0]);
         }
 
         if (playerBase != null)
         {
-            playerBase.addChatMessage(new TextComponentString(GCCoreUtil.translateWithFormat("gui.spacestation.removesuccess", var3)));
+            playerBase.sendMessage(new TextComponentString(GCCoreUtil.translateWithFormat("gui.spacestation.removesuccess", var3)));
         }
     }
 
 
     @Override
-    public List<String> getTabCompletionOptions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos pos)
+    public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos pos)
     {
         return args.length == 1 ? getListOfStringsMatchingLastWord(args, this.getPlayers(server, sender)) : null;
     }
@@ -126,14 +126,14 @@ public class CommandSpaceStationRemoveOwner extends CommandBase
             GCPlayerStats stats = GCPlayerStats.get(playerBase);
             if (!stats.getSpaceStationDimensionData().isEmpty())
             {
-                String[] allNames = server.getAllUsernames();
+                String[] allNames = server.getOnlinePlayerNames();
                 //data.getAllowedPlayers may include some in lowercase
                 //Convert to correct case at least for those players who are online
                 HashSet<String> allowedNames = Sets.newHashSet();
 
                 for (Map.Entry<Integer, Integer> e : stats.getSpaceStationDimensionData().entrySet())
                 {
-                    final SpaceStationWorldData data = SpaceStationWorldData.getStationData(playerBase.worldObj, e.getValue(), playerBase);
+                    final SpaceStationWorldData data = SpaceStationWorldData.getStationData(playerBase.world, e.getValue(), playerBase);
                     allowedNames.addAll(data.getAllowedPlayers());
                 }
 

@@ -13,6 +13,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.StructureBoundingBox;
+import net.minecraft.world.gen.structure.template.TemplateManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -156,9 +157,9 @@ public class BaseDeck extends SizedPiece
     }
 
     @Override
-    protected void readStructureFromNBT(NBTTagCompound tagCompound)
+    protected void readStructureFromNBT(NBTTagCompound tagCompound, TemplateManager manager)
     {
-        super.readStructureFromNBT(tagCompound);
+        super.readStructureFromNBT(tagCompound, manager);
         try
         {
             int details = tagCompound.getInteger("dD");
@@ -176,7 +177,7 @@ public class BaseDeck extends SizedPiece
                 {
                     NBTTagCompound tagAt = tagList.getCompoundTagAt(i);
                     BaseDeck deck = new BaseDeck();
-                    deck.readStructureFromNBT(tagAt);
+                    deck.readStructureFromNBT(tagAt, manager);
                     this.otherDecks.add(deck);
                 }
             }

@@ -34,7 +34,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
-import net.minecraftforge.fluids.IFluidHandler;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.relauncher.Side;
@@ -90,12 +89,12 @@ public class OxygenUtil
 
         // If entity is within air lock wall, check adjacent blocks for oxygen
         // The value is equal to the max distance from an adjacent oxygen block to the edge of a sealer wall
-        if (entity.worldObj.getBlockState(entity.getPosition()).getBlock() == GCBlocks.airLockSeal)
+        if (entity.world.getBlockState(entity.getPosition()).getBlock() == GCBlocks.airLockSeal)
         {
             offsetXZ = 0.75F;
         }
 
-        return OxygenUtil.isAABBInBreathableAirBlock(entity.worldObj, new AxisAlignedBB(x - smin - offsetXZ, y - smin, z - smin - offsetXZ, x + smin + offsetXZ, y + smin, z + smin + offsetXZ), testThermal);
+        return OxygenUtil.isAABBInBreathableAirBlock(entity.world, new AxisAlignedBB(x - smin - offsetXZ, y - smin, z - smin - offsetXZ, x + smin + offsetXZ, y + smin, z + smin + offsetXZ), testThermal);
     }
 
     public static boolean isAABBInBreathableAirBlock(World world, AxisAlignedBB bb)
@@ -124,12 +123,12 @@ public class OxygenUtil
 
     public static boolean isInOxygenBlock(World world, AxisAlignedBB bb)
     {
-        int xm = MathHelper.floor_double(bb.minX + 0.001D);
-        int xx = MathHelper.floor_double(bb.maxX - 0.001D);
-        int ym = MathHelper.floor_double(bb.minY + 0.001D);
-        int yy = MathHelper.floor_double(bb.maxY - 0.001D);
-        int zm = MathHelper.floor_double(bb.minZ + 0.001D);
-        int zz = MathHelper.floor_double(bb.maxZ - 0.001D);
+        int xm = MathHelper.floor(bb.minX + 0.001D);
+        int xx = MathHelper.floor(bb.maxX - 0.001D);
+        int ym = MathHelper.floor(bb.minY + 0.001D);
+        int yy = MathHelper.floor(bb.maxY - 0.001D);
+        int zm = MathHelper.floor(bb.minZ + 0.001D);
+        int zz = MathHelper.floor(bb.maxZ - 0.001D);
 
         OxygenUtil.checked = new HashSet<>();
         if (world.isAreaLoaded(new BlockPos(xm, ym, zm), new BlockPos(xx, yy, zz)))
@@ -156,12 +155,12 @@ public class OxygenUtil
 
     public static boolean isInOxygenAndThermalBlock(World world, AxisAlignedBB bb)
     {
-        int i = MathHelper.floor_double(bb.minX + 0.001D);
-        int j = MathHelper.floor_double(bb.maxX - 0.001D);
-        int k = MathHelper.floor_double(bb.minY + 0.001D);
-        int l = MathHelper.floor_double(bb.maxY - 0.001D);
-        int i1 = MathHelper.floor_double(bb.minZ + 0.001D);
-        int j1 = MathHelper.floor_double(bb.maxZ - 0.001D);
+        int i = MathHelper.floor(bb.minX + 0.001D);
+        int j = MathHelper.floor(bb.maxX - 0.001D);
+        int k = MathHelper.floor(bb.minY + 0.001D);
+        int l = MathHelper.floor(bb.maxY - 0.001D);
+        int i1 = MathHelper.floor(bb.minZ + 0.001D);
+        int j1 = MathHelper.floor(bb.maxZ - 0.001D);
 
         OxygenUtil.checked = new HashSet<>();
         if (world.isAreaLoaded(new BlockPos(i, k, i1), new BlockPos(j, l, j1)))
@@ -334,8 +333,8 @@ public class OxygenUtil
 
     public static int getDrainSpacing(ItemStack tank, ItemStack tank2)
     {
-        boolean tank1Valid = tank != null && tank.getItem() instanceof ItemOxygenTank && tank.getMaxDamage() - tank.getItemDamage() > 0;
-        boolean tank2Valid = tank2 != null && tank2.getItem() instanceof ItemOxygenTank && tank2.getMaxDamage() - tank2.getItemDamage() > 0;
+        boolean tank1Valid = !tank.isEmpty() && tank.getItem() instanceof ItemOxygenTank && tank.getMaxDamage() - tank.getItemDamage() > 0;
+        boolean tank2Valid = !tank2.isEmpty() && tank2.getItem() instanceof ItemOxygenTank && tank2.getMaxDamage() - tank2.getItemDamage() > 0;
 
         if (!tank1Valid && !tank2Valid)
         {
@@ -351,13 +350,13 @@ public class OxygenUtil
 
         GCPlayerStats stats = GCPlayerStats.get(player);
 
-        if (stats.getExtendedInventory().getStackInSlot(0) == null || !OxygenUtil.isItemValidForPlayerTankInv(0, stats.getExtendedInventory().getStackInSlot(0)))
+        if (!OxygenUtil.isItemValidForPlayerTankInv(0, stats.getExtendedInventory().getStackInSlot(0)))
         {
             boolean handled = false;
 
             for (final ItemStack armorStack : player.inventory.armorInventory)
             {
-                if (armorStack != null && armorStack.getItem() instanceof IBreathableArmor)
+                if (!armorStack.isEmpty() && armorStack.getItem() instanceof IBreathableArmor)
                 {
                     final IBreathableArmor breathableArmor = (IBreathableArmor) armorStack.getItem();
 
@@ -377,13 +376,13 @@ public class OxygenUtil
             }
         }
 
-        if (stats.getExtendedInventory().getStackInSlot(1) == null || !OxygenUtil.isItemValidForPlayerTankInv(1, stats.getExtendedInventory().getStackInSlot(1)))
+        if (!OxygenUtil.isItemValidForPlayerTankInv(1, stats.getExtendedInventory().getStackInSlot(1)))
         {
             boolean handled = false;
 
             for (final ItemStack armorStack : player.inventory.armorInventory)
             {
-                if (armorStack != null && armorStack.getItem() instanceof IBreathableArmor)
+                if (!armorStack.isEmpty() && armorStack.getItem() instanceof IBreathableArmor)
                 {
                     final IBreathableArmor breathableArmor = (IBreathableArmor) armorStack.getItem();
 
@@ -403,13 +402,13 @@ public class OxygenUtil
             }
         }
 
-        if ((stats.getExtendedInventory().getStackInSlot(2) == null || !OxygenUtil.isItemValidForPlayerTankInv(2, stats.getExtendedInventory().getStackInSlot(2))) && (stats.getExtendedInventory().getStackInSlot(3) == null || !OxygenUtil.isItemValidForPlayerTankInv(3, stats.getExtendedInventory().getStackInSlot(3))))
+        if (!OxygenUtil.isItemValidForPlayerTankInv(2, stats.getExtendedInventory().getStackInSlot(2)) && !OxygenUtil.isItemValidForPlayerTankInv(3, stats.getExtendedInventory().getStackInSlot(3)))
         {
             boolean handled = false;
 
             for (final ItemStack armorStack : player.inventory.armorInventory)
             {
-                if (armorStack != null && armorStack.getItem() instanceof IBreathableArmor)
+                if (!armorStack.isEmpty() && armorStack.getItem() instanceof IBreathableArmor)
                 {
                     final IBreathableArmor breathableArmor = (IBreathableArmor) armorStack.getItem();
 
@@ -480,23 +479,16 @@ public class OxygenUtil
             boolean connectable = false;
             if (tileEntity instanceof IConnector)
             {
-                connectable = ignoreConnect || ((IConnector) tileEntity).canConnect(direction.getOpposite(), NetworkType.FLUID);
+            	connectable = ignoreConnect || ((IConnector) tileEntity).canConnect(direction.getOpposite(), NetworkType.FLUID);
             }
             else if (tileEntity != null)
             {
-                if (tileEntity.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite()) != null)
-                {
-                    connectable = true;
-                }
-                else
-                {
-                    connectable = tileEntity instanceof IFluidHandler;
-                }
+            	connectable = tileEntity.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite()) != null;
             }
-            
+
             if (connectable)
             {
-                adjacentConnections[direction.ordinal()] = tileEntity;
+            	adjacentConnections[direction.ordinal()] = tileEntity;
             }
         }
 

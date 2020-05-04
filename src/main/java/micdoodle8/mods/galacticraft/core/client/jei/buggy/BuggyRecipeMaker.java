@@ -4,6 +4,7 @@ import micdoodle8.mods.galacticraft.api.GalacticraftRegistry;
 import micdoodle8.mods.galacticraft.api.recipe.INasaWorkbenchRecipe;
 import micdoodle8.mods.galacticraft.core.GCItems;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.Ingredient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,9 +12,9 @@ import java.util.Map.Entry;
 
 public class BuggyRecipeMaker
 {
-    public static List<BuggyRecipeWrapper> getRecipesList()
+    public static List<INasaWorkbenchRecipe> getRecipesList()
     {
-        List<BuggyRecipeWrapper> recipes = new ArrayList<>();
+        List<INasaWorkbenchRecipe> recipes = new ArrayList<>();
 
         int chestCount = -1;
         for (INasaWorkbenchRecipe recipe : GalacticraftRegistry.getBuggyBenchRecipes())
@@ -22,20 +23,19 @@ public class BuggyRecipeMaker
             if (chests == chestCount)
                 continue;
             chestCount = chests;
-            BuggyRecipeWrapper wrapper = new BuggyRecipeWrapper(recipe);
-            recipes.add(wrapper);
+            recipes.add(recipe);
         }
 
         return recipes;
     }
-    
+
     public static int countStorage(INasaWorkbenchRecipe recipe)
     {
         int count = 0;
         ItemStack storage = new ItemStack(GCItems.partBuggy, 1, 2);
-        for (Entry<Integer, ItemStack> e : recipe.getRecipeInput().entrySet())
+        for (Entry<Integer, Ingredient> e : recipe.getRecipeInput().entrySet())
         {
-            if (ItemStack.areItemsEqual(storage, e.getValue()))
+            if (e.getValue().apply(storage))
                 count++;
         }
         return count;

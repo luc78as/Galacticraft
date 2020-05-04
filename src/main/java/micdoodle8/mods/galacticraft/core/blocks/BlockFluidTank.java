@@ -11,6 +11,7 @@ import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyBool;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
@@ -24,6 +25,7 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.FluidActionResult;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -84,6 +86,12 @@ public class BlockFluidTank extends Block implements IShiftDescription, ISortabl
     public boolean isOpaqueCube(IBlockState state)
     {
         return false;
+    }
+
+    @Override
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face)
+    {
+        return BlockFaceShape.UNDEFINED;
     }
 
     @Override
@@ -150,7 +158,7 @@ public class BlockFluidTank extends Block implements IShiftDescription, ISortabl
 //    }
 //
 //    @Override
-//    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, World worldIn, BlockPos pos)
+//    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, IBlockAccess worldIn, BlockPos pos)
 //    {
 //        this.setBlockBoundsBasedOnState(worldIn, pos);
 //        return super.getCollisionBoundingBox(worldIn, pos, state);
@@ -164,17 +172,22 @@ public class BlockFluidTank extends Block implements IShiftDescription, ISortabl
 //    }
 
     @Override
-    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, ItemStack heldItem, EnumFacing side, float hitX, float hitY, float hitZ)
+    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing side, float hitX, float hitY, float hitZ)
     {
-        if (super.onBlockActivated(worldIn, pos, state, playerIn, hand, heldItem, side, hitX, hitY, hitZ))
+        if (super.onBlockActivated(worldIn, pos, state, playerIn, hand, side, hitX, hitY, hitZ))
         {
             return true;
+        }
+
+        if (hand == EnumHand.OFF_HAND)
+        {
+        	return false;
         }
 
         ItemStack current = playerIn.inventory.getCurrentItem();
         int slot = playerIn.inventory.currentItem;
 
-        if (current != null)
+        if (!current.isEmpty())
         {
             TileEntity tile = worldIn.getTileEntity(pos);
 
@@ -182,7 +195,18 @@ public class BlockFluidTank extends Block implements IShiftDescription, ISortabl
             {
                 TileEntityFluidTank tank = (TileEntityFluidTank) tile;
 
-                return FluidUtil.interactWithFluidHandler(current, tank.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null), playerIn);
+                FluidActionResult forgeResult = FluidUtil.interactWithFluidHandler(current, tank.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null), playerIn);
+                if (forgeResult.isSuccess())
+                {
+                	playerIn.inventory.setInventorySlotContents(slot, forgeResult.result);
+            		if (playerIn.inventoryContainer != null)
+            		{
+            			playerIn.inventoryContainer.detectAndSendChanges();
+            		}
+            		return true;
+                }
+
+                return false;
             }
         }
 

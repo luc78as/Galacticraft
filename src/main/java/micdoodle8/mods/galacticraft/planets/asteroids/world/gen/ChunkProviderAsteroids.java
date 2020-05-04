@@ -1,5 +1,6 @@
 package micdoodle8.mods.galacticraft.planets.asteroids.world.gen;
 
+import micdoodle8.mods.galacticraft.api.prefab.world.gen.BiomeAdaptive;
 import micdoodle8.mods.galacticraft.api.vector.BlockVec3;
 import micdoodle8.mods.galacticraft.api.world.ChunkProviderBase;
 import micdoodle8.mods.galacticraft.core.GCBlocks;
@@ -57,7 +58,7 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
 
     private final Random rand;
 
-    private final World worldObj;
+    private final World world;
 
     private final NoiseModule asteroidDensity;
 
@@ -123,7 +124,7 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
 
     public ChunkProviderAsteroids(World par1World, long par2, boolean par4)
     {
-        this.worldObj = par1World;
+        this.world = par1World;
         this.rand = new Random(par2);
 
         this.asteroidDensity = new Billowed(this.rand.nextLong(), 2, .25F);
@@ -232,7 +233,7 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
         }
 
         //Add to the list of asteroids for external use
-        ((WorldProviderAsteroids) this.worldObj.provider).addAsteroid(asteroidX, asteroidY, asteroidZ, size, isHollow ? -1 : core.index);
+        ((WorldProviderAsteroids) this.world.provider).addAsteroid(asteroidX, asteroidY, asteroidZ, size, isHollow ? -1 : core.index);
 
         final int xMin = this.clamp(Math.max(chunkX, asteroidX - size - ChunkProviderAsteroids.MAX_ASTEROID_SKEW - 2) - chunkX, 0, 16);
         final int zMin = this.clamp(Math.max(chunkZ, asteroidZ - size - ChunkProviderAsteroids.MAX_ASTEROID_SKEW - 2) - chunkZ, 0, 16);
@@ -530,7 +531,7 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
     }
 
     @Override
-    public Chunk provideChunk(int par1, int par2)
+    public Chunk generateChunk(int par1, int par2)
     {
         ChunkPrimer primer = new ChunkPrimer();
 //        long time1 = System.nanoTime();
@@ -538,20 +539,21 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
 //        final Block[] ids = new Block[65536];
 //        final byte[] meta = new byte[65536];
         this.generateTerrain(par1, par2, primer, false);
-        //this.biomesForGeneration = this.worldObj.getWorldChunkManager().loadBlockGeneratorData(this.biomesForGeneration, par1 * 16, par2 * 16, 16, 16);
+        //this.biomesForGeneration = this.world.getWorldChunkManager().loadBlockGeneratorData(this.biomesForGeneration, par1 * 16, par2 * 16, 16, 16);
 
-        if (this.worldObj.provider instanceof WorldProviderAsteroids && ((WorldProviderAsteroids)this.worldObj.provider).checkHasAsteroids())
+        if (this.world.provider instanceof WorldProviderAsteroids && ((WorldProviderAsteroids)this.world.provider).checkHasAsteroids())
         {
-            this.dungeonGenerator.generate(this.worldObj, par1, par2, primer);
+            this.dungeonGenerator.generate(this.world, par1, par2, primer);
         }
 
 //        long time2 = System.nanoTime();
-        final Chunk var4 = new Chunk(this.worldObj, primer, par1, par2);
+        final Chunk var4 = new Chunk(this.world, primer, par1, par2);
         final byte[] biomesArray = var4.getBiomeArray();
-        byte id = (byte) Biome.getIdForBiome(BiomeAsteroids.asteroid);
+
+        final byte b = (byte) Biome.getIdForBiome( BiomeAdaptive.biomeDefault );
         for (int i = 0; i < biomesArray.length; ++i)
         {
-            biomesArray[i] = id;
+            biomesArray[i] = b;
         }
 
 //        long time3 = System.nanoTime();
@@ -615,13 +617,13 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
         }
 
 //        BlockFalling.fallInstantly = true;
-//        this.worldObj.getBiome(new BlockPos(x + 16, 0, z + 16));
+//        this.world.getBiome(new BlockPos(x + 16, 0, z + 16));
 //        BlockFalling.fallInstantly = false;
 
-        this.rand.setSeed(this.worldObj.getSeed());
+        this.rand.setSeed(this.world.getSeed());
         long var7 = this.rand.nextLong() / 2L * 2L + 1L;
         long var9 = this.rand.nextLong() / 2L * 2L + 1L;
-        this.rand.setSeed(chunkX * var7 + chunkZ * var9 ^ this.worldObj.getSeed());
+        this.rand.setSeed(chunkX * var7 + chunkZ * var9 ^ this.world.getSeed());
 
         //50:50 chance to include small blocks each chunk
         if (this.rand.nextBoolean())
@@ -676,25 +678,25 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
                         }
                     }
 
-                    worldObj.setBlockState(new BlockPos(px, y, pz), block.getStateFromMeta(meta), 2);
+                    world.setBlockState(new BlockPos(px, y, pz), block.getStateFromMeta(meta), 2);
                     int count = 9;
-                    if (!(worldObj.getBlockState(new BlockPos(px - 1, y, pz)).getBlock() instanceof BlockAir))
+                    if (!(world.getBlockState(new BlockPos(px - 1, y, pz)).getBlock() instanceof BlockAir))
                     {
                         count = 1;
                     }
-                    else if (!(worldObj.getBlockState(new BlockPos(px - 2, y, pz)).getBlock() instanceof BlockAir))
+                    else if (!(world.getBlockState(new BlockPos(px - 2, y, pz)).getBlock() instanceof BlockAir))
                     {
                         count = 3;
                     }
-                    else if (!(worldObj.getBlockState(new BlockPos(px - 3, y, pz)).getBlock() instanceof BlockAir))
+                    else if (!(world.getBlockState(new BlockPos(px - 3, y, pz)).getBlock() instanceof BlockAir))
                     {
                         count = 5;
                     }
-                    else if (!(worldObj.getBlockState(new BlockPos(px - 4, y, pz)).getBlock() instanceof BlockAir))
+                    else if (!(world.getBlockState(new BlockPos(px - 4, y, pz)).getBlock() instanceof BlockAir))
                     {
                         count = 7;
                     }
-//LIGHTEMP                    worldObj.setLightFor(EnumSkyBlock.BLOCK, new BlockPos(px - (count > 1 ? 1 : 0), y, pz), count);
+//LIGHTEMP                    world.setLightFor(EnumSkyBlock.BLOCK, new BlockPos(px - (count > 1 ? 1 : 0), y, pz), count);
                 }
             }
         }
@@ -704,7 +706,7 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
             this.generateTerrain(chunkX, chunkZ, null, true);
         }
 
-        this.rand.setSeed(chunkX * var7 + chunkZ * var9 ^ this.worldObj.getSeed());
+        this.rand.setSeed(chunkX * var7 + chunkZ * var9 ^ this.world.getSeed());
 
         //Look for hollow asteroids to populate
         if (!this.largeAsteroids.isEmpty())
@@ -738,7 +740,7 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
                     {
                         int i = rand.nextInt(16) + x + 8;
                         int k = rand.nextInt(16) + z + 8;
-                        if (wg.generate(worldObj, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k)))
+                        if (wg.generate(world, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k)))
                         {
                             break;
                         }
@@ -749,26 +751,26 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
                 {
                     int i = rand.nextInt(16) + x + 8;
                     int k = rand.nextInt(16) + z + 8;
-                    new WorldGenTallGrass(GRASS_TYPE).generate(worldObj, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k));
+                    new WorldGenTallGrass(GRASS_TYPE).generate(world, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k));
                 }
                 if (rand.nextInt(ChunkProviderAsteroids.FLOWER_CHANCE) == 0)
                 {
                     int i = rand.nextInt(16) + x + 8;
                     int k = rand.nextInt(16) + z + 8;
                     int[] types = new int[]{2, 4, 5, 7};
-                    new WorldGenFlowers(this.FLOWER, EnumFlowerType.getType(BlockFlower.EnumFlowerColor.RED, types[rand.nextInt(types.length)])).generate(worldObj, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k));
+                    new WorldGenFlowers(this.FLOWER, EnumFlowerType.getType(BlockFlower.EnumFlowerColor.RED, types[rand.nextInt(types.length)])).generate(world, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k));
                 }
                 if (rand.nextInt(ChunkProviderAsteroids.LAVA_CHANCE) == 0)
                 {
                     int i = rand.nextInt(16) + x + 8;
                     int k = rand.nextInt(16) + z + 8;
-                    new WorldGenLakes(this.LAVA).generate(worldObj, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k));
+                    new WorldGenLakes(this.LAVA).generate(world, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k));
                 }
                 if (rand.nextInt(ChunkProviderAsteroids.WATER_CHANCE) == 0)
                 {
                     int i = rand.nextInt(16) + x + 8;
                     int k = rand.nextInt(16) + z + 8;
-                    new WorldGenLakes(this.WATER).generate(worldObj, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k));
+                    new WorldGenLakes(this.WATER).generate(world, rand, new BlockPos(i, this.getTerrainHeightAt(i - x, k - z, sizeYArray, xMin, zMin, zSize, asteroidY, asteroidSize), k));
                 }
             }
         }
@@ -784,18 +786,18 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
                 //Asteroid at min height 48, size 20, can't have lit blocks below 16
                 for (int y = 16; y < 240; y++)
                 {
-//LIGHTTEMP                    worldObj.checkLightFor(EnumSkyBlock.BLOCK, new BlockPos(xPos, y, zPos));
+//LIGHTTEMP                    world.checkLightFor(EnumSkyBlock.BLOCK, new BlockPos(xPos, y, zPos));
                 }
             }
         }
 
-        this.dungeonGenerator.generateStructure(this.worldObj, this.rand, new ChunkPos(chunkX, chunkZ));
+        this.dungeonGenerator.generateStructure(this.world, this.rand, new ChunkPos(chunkX, chunkZ));
     }
 
     @Override
     public void recreateStructures(Chunk chunk, int x, int z)
     {
-        this.dungeonGenerator.generate(this.worldObj, x, z, null);
+        this.dungeonGenerator.generate(this.world, x, z, null);
     }
 
     public void generateSkylightMap(Chunk chunk, int cx, int cz)
@@ -807,11 +809,12 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
 //        boolean flagXZUChunk = w.getChunkProvider().chunkExists(cx - 1, cz + 1);
 //        boolean flagXZDChunk = w.getChunkProvider().chunkExists(cx - 1, cz - 1);
 
+        boolean flag = world.provider.hasSkyLight();
         for (int j = 0; j < 16; j++)
         {
             if (chunk.getBlockStorageArray()[j] == null)
             {
-                chunk.getBlockStorageArray()[j] = new ExtendedBlockStorage(j << 4, false);
+                chunk.getBlockStorageArray()[j] = new ExtendedBlockStorage(j << 4, flag);
             }
         }
 
@@ -940,7 +943,7 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
                             ExtendedBlockStorage extendedblockstorage = chunk.getBlockStorageArray()[y >> 4];
                             if (extendedblockstorage != null)
                             {
-                                extendedblockstorage.setExtBlocklightValue(x - 1, y & 15, z, count + 2);
+                                extendedblockstorage.setBlockLight(x - 1, y & 15, z, count + 2);
                             }
                         }
                     }
@@ -948,7 +951,7 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
             }
         }
 
-        chunk.isModified = true;
+        chunk.setModified(true);
     }
 
     public void resetBase()
@@ -959,7 +962,7 @@ public class ChunkProviderAsteroids extends ChunkProviderBase
     @Override
     public List<Biome.SpawnListEntry> getPossibleCreatures(EnumCreatureType creatureType, BlockPos pos)
     {
-        Biome biome = this.worldObj.getBiome(pos);
+        Biome biome = this.world.getBiome(pos);
         return biome.getSpawnableList(creatureType);
     }
 

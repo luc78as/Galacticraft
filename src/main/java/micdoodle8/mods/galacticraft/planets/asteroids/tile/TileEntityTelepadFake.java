@@ -23,14 +23,31 @@ public class TileEntityTelepadFake extends TileBaseElectricBlock
     @NetworkedField(targetSide = Side.CLIENT)
     private boolean canConnect = false;
 
+    public TileEntityTelepadFake()
+    {
+        super("tile.telepadfake.name");
+    }
+
+    @Override
+    public int[] getSlotsForFace(EnumFacing side)
+    {
+        return new int[0];
+    }
+
+    @Override
+    protected boolean handleInventory()
+    {
+        return false;
+    }
+
     public void setMainBlock(BlockPos mainBlock)
     {
         this.setMainBlockInternal(mainBlock);
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
-            IBlockState state = this.worldObj.getBlockState(this.getPos());
-            this.worldObj.notifyBlockUpdate(this.getPos(), state, state, 3);
+            IBlockState state = this.world.getBlockState(this.getPos());
+            this.world.notifyBlockUpdate(this.getPos(), state, state, 3);
         }
     }
 
@@ -81,7 +98,7 @@ public class TileEntityTelepadFake extends TileBaseElectricBlock
 
         if (mainTelepad == null)
         {
-            TileEntity tileEntity = this.worldObj.getTileEntity(this.mainBlockPosition);
+            TileEntity tileEntity = this.world.getTileEntity(this.mainBlockPosition);
 
             if (tileEntity != null)
             {
@@ -94,7 +111,7 @@ public class TileEntityTelepadFake extends TileBaseElectricBlock
 
         if (mainTelepad == null)
         {
-            this.worldObj.setBlockToAir(this.mainBlockPosition);
+            this.world.setBlockToAir(this.mainBlockPosition);
         }
         else
         {
@@ -106,7 +123,7 @@ public class TileEntityTelepadFake extends TileBaseElectricBlock
             }
             else
             {
-                this.worldObj.removeTileEntity(this.getPos());
+                this.world.removeTileEntity(this.getPos());
             }
         }
 
@@ -159,13 +176,13 @@ public class TileEntityTelepadFake extends TileBaseElectricBlock
     @Override
     public void getNetworkedData(ArrayList<Object> sendData)
         {
-        if (this.mainBlockPosition == null)
-        {
-            if (this.worldObj.isRemote || !this.resetMainBlockPosition())
-            {
-                return;
-        }
-    }
+    	if (this.mainBlockPosition == null)
+    	{
+    		if (this.world.isRemote || !this.resetMainBlockPosition())
+    		{
+    			return;
+    		}
+    	}
         super.getNetworkedData(sendData);
     }
 
@@ -178,7 +195,7 @@ public class TileEntityTelepadFake extends TileBaseElectricBlock
                 for (int y = -2; y < 1; y += 2)
                 {
                     final BlockPos vecToCheck = this.getPos().add(x, y, z);
-                    if (this.worldObj.getTileEntity(vecToCheck) instanceof TileEntityShortRangeTelepad)
+                    if (this.world.getTileEntity(vecToCheck) instanceof TileEntityShortRangeTelepad)
                     {
                         this.setMainBlock(vecToCheck);
                         return true;
@@ -215,7 +232,7 @@ public class TileEntityTelepadFake extends TileBaseElectricBlock
     @Override
     public ItemStack getBatteryInSlot()
     {
-        return null;
+        return ItemStack.EMPTY;
     }
 
     private void updateConnectable()

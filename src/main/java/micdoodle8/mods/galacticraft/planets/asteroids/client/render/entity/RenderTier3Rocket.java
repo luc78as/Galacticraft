@@ -95,7 +95,7 @@ public class RenderTier3Rocket extends Render<EntityTier3Rocket>
 
         if (rollAmplitude > 0.0F)
         {
-            float i = entity.getLaunched() ? (5 - MathHelper.floor_double(entity.timeUntilLaunch / 85)) / 10F : 0.3F;
+            final float i = entity.getLaunched() ? (5 - MathHelper.floor(entity.timeUntilLaunch / 85)) / 10F : 0.3F;
             GlStateManager.rotate(MathHelper.sin(rollAmplitude) * rollAmplitude * i * partialTicks, 1.0F, 0.0F, 0.0F);
             GlStateManager.rotate(MathHelper.sin(rollAmplitude) * rollAmplitude * i * partialTicks, 1.0F, 0.0F, 1.0F);
         }
@@ -112,11 +112,11 @@ public class RenderTier3Rocket extends Render<EntityTier3Rocket>
             GlStateManager.shadeModel(GL11.GL_FLAT);
         }
 
-        GlStateManager.scale(-1.0F, -1.0F, 1.0F);
-        GlStateManager.scale(0.8F, 0.8F, 0.8F);
+		GlStateManager.scale(-1.0F, -1.0F, 1.0F);
+		GlStateManager.scale(0.8F, 0.8F, 0.8F);
         ClientUtil.drawBakedModel(this.rocketModel);
 
-        Vector3 teamColor = ClientUtil.updateTeamColor(PlayerUtil.getName(FMLClientHandler.instance().getClient().thePlayer), true);
+        Vector3 teamColor = ClientUtil.updateTeamColor(PlayerUtil.getName(FMLClientHandler.instance().getClient().player), true);
 
         if (teamColor != null)
         {
@@ -132,7 +132,7 @@ public class RenderTier3Rocket extends Render<EntityTier3Rocket>
 
         GlStateManager.disableLighting();
 
-        boolean red = FMLClientHandler.instance().getClient().thePlayer.ticksExisted / 10 % 2 < 1;
+        boolean red = FMLClientHandler.instance().getClient().player.ticksExisted / 10 % 2 < 1;
         int color = ColorUtil.to32BitColor(255, 0, red ? 0 : 255, red ? 255 : 0);
         ClientUtil.drawBakedModelColored(cubeModel, color);
 
@@ -147,7 +147,7 @@ public class RenderTier3Rocket extends Render<EntityTier3Rocket>
     @Override
     public boolean shouldRender(EntityTier3Rocket rocket, ICamera camera, double camX, double camY, double camZ)
     {
-        AxisAlignedBB axisalignedbb = rocket.getEntityBoundingBox().expand(0.5D, 0, 0.5D);
+        AxisAlignedBB axisalignedbb = rocket.getEntityBoundingBox().grow(0.5D, 0, 0.5D);
         return rocket.isInRangeToRender3d(camX, camY, camZ) && camera.isBoundingBoxInFrustum(axisalignedbb);
     }
 }

@@ -9,9 +9,9 @@ import java.util.List;
 
 public class CargoRocketRecipeMaker
 {
-    public static List<CargoRocketRecipeWrapper> getRecipesList()
+    public static List<INasaWorkbenchRecipe> getRecipesList()
     {
-        List<CargoRocketRecipeWrapper> recipes = new ArrayList<>();
+        List<INasaWorkbenchRecipe> recipes = new ArrayList<>();
 
         int chestCount = -1;
         for (INasaWorkbenchRecipe recipe : GalacticraftRegistry.getCargoRocketRecipes())
@@ -20,8 +20,7 @@ public class CargoRocketRecipeMaker
             if (chests == chestCount)
                 continue;
             chestCount = chests;
-            CargoRocketRecipeWrapper wrapper = new CargoRocketRecipeWrapper(recipe);
-            recipes.add(wrapper);
+            recipes.add(recipe);
         }
 
         return recipes;

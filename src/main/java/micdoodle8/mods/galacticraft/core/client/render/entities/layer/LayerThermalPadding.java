@@ -41,7 +41,7 @@ public class LayerThermalPadding extends LayerArmorBase<ModelBiped>
     @Override
     protected void setModelSlotVisible(ModelBiped model, EntityEquipmentSlot slotIn)
     {
-        model.setInvisible(false);
+        model.setVisible(false);
 
         switch (slotIn)
         {
@@ -64,7 +64,6 @@ public class LayerThermalPadding extends LayerArmorBase<ModelBiped>
         }
     }
 
-    @Override
     public ItemStack getItemStackFromSlot(EntityLivingBase living, EntityEquipmentSlot slotIn)
     {
         PlayerGearData gearData = GalacticraftCore.proxy.getGearData((EntityPlayer) living);
@@ -92,7 +91,7 @@ public class LayerThermalPadding extends LayerArmorBase<ModelBiped>
             }
         }
 
-        return null;
+        return null;   //This null is OK, it's used only as flag by calling code in this same class
     }
 
     @Override
@@ -130,9 +129,9 @@ public class LayerThermalPadding extends LayerArmorBase<ModelBiped>
             float g = 1.0F * sTime;
             float b = 0.2F * sTime;
 
-            if (entityLivingBaseIn.worldObj.provider instanceof IGalacticraftWorldProvider)
+            if (entityLivingBaseIn.world.provider instanceof IGalacticraftWorldProvider)
             {
-                float modifier = ((IGalacticraftWorldProvider) entityLivingBaseIn.worldObj.provider).getThermalLevelModifier();
+                float modifier = ((IGalacticraftWorldProvider) entityLivingBaseIn.world.provider).getThermalLevelModifier();
 
                 if (modifier > 0)
                 {

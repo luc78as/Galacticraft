@@ -88,7 +88,7 @@ public class SpinManager
      */
     public void registerServerSide()
     {
-        if (!this.worldProvider.worldObj.isRemote)
+        if (!this.worldProvider.world.isRemote)
         {
             this.clientSide = false;
         }
@@ -183,7 +183,7 @@ public class SpinManager
      */
     public boolean refresh(BlockPos baseBlock, boolean placingThruster)
     {
-        if (this.oneSSBlock == null || this.worldProvider.worldObj.getBlockState(this.oneSSBlock).getBlock().isAir(this.worldProvider.worldObj.getBlockState(this.oneSSBlock), this.worldProvider.worldObj, this.oneSSBlock))
+        if (this.oneSSBlock == null || this.worldProvider.world.getBlockState(this.oneSSBlock).getBlock().isAir(this.worldProvider.world.getBlockState(this.oneSSBlock), this.worldProvider.world, this.oneSSBlock))
         {
             if (baseBlock != null)
             {
@@ -203,7 +203,7 @@ public class SpinManager
         this.checked.clear();
         currentLayer.add(new BlockVec3(this.oneSSBlock));
         this.checked.add(new BlockVec3(this.oneSSBlock));
-        IBlockState bsStart = this.worldProvider.worldObj.getBlockState(this.oneSSBlock);
+        IBlockState bsStart = this.worldProvider.world.getBlockState(this.oneSSBlock);
         Block bStart = bsStart.getBlock();
         if (bStart instanceof BlockSpinThruster)
         {
@@ -264,16 +264,16 @@ public class SpinManager
                     if (sideVec != null && !this.checked.contains(sideVec))
                     {
                         this.checked.add(sideVec);
-                        IBlockState state = sideVec.getBlockState(this.worldProvider.worldObj);
+                        IBlockState state = sideVec.getBlockState(this.worldProvider.world);
                         if (state == null)
                         {
-                            continue;
+                        	continue;
                         }
                         Block b = state.getBlock();
-                        if (b != null && !b.isAir(state, this.worldProvider.worldObj, sideVec.toBlockPos()) && !(b instanceof BlockDynamicLiquid))
+                        if (b != null && !b.isAir(state, this.worldProvider.world, sideVec.toBlockPos()) && !(b instanceof BlockDynamicLiquid))
                         {
                             nextLayer.add(sideVec);
-                            if (bStart.isAir(bsStart, this.worldProvider.worldObj, this.oneSSBlock))
+                            if (bStart.isAir(bsStart, this.worldProvider.world, this.oneSSBlock))
                             {
                                 this.oneSSBlock = sideVec.toBlockPos();
                                 bStart = b;
@@ -283,7 +283,7 @@ public class SpinManager
                             if (!(b instanceof BlockLiquid))
                             {
                                 //For most blocks, hardness gives a good idea of mass
-                                m = b.getBlockHardness(state, this.worldProvider.worldObj, sideVec.toBlockPos());
+                                m = b.getBlockHardness(state, this.worldProvider.world, sideVec.toBlockPos());
                                 if (m < 0.1F)
                                 {
                                     m = 0.1F;
@@ -306,7 +306,7 @@ public class SpinManager
                             thismassCentreZ += m * sideVec.z;
                             thismass += m;
                             thismoment += m * (sideVec.x * sideVec.x + sideVec.z * sideVec.z);
-                            if (b instanceof BlockSpinThruster && !RedstoneUtil.isBlockReceivingRedstone(this.worldProvider.worldObj, sideVec.toBlockPos()))
+                            if (b instanceof BlockSpinThruster && !RedstoneUtil.isBlockReceivingRedstone(this.worldProvider.world, sideVec.toBlockPos()))
                             {
                                 foundThrusters.add(sideVec.toBlockPos());
                             }
@@ -337,7 +337,7 @@ public class SpinManager
             if (!this.oneSSBlock.equals(baseBlock))
             {
                 this.oneSSBlock = baseBlock;
-                IBlockState state = this.worldProvider.worldObj.getBlockState(this.oneSSBlock);
+                IBlockState state = this.worldProvider.world.getBlockState(this.oneSSBlock);
                 if (state.getMaterial() != Material.AIR)
                 {
                     return this.refresh(baseBlock, true);
@@ -353,7 +353,7 @@ public class SpinManager
         this.thrustersMinus.clear();
         for (BlockPos thruster : foundThrusters)
         {
-            IBlockState state = this.worldProvider.worldObj.getBlockState(thruster);
+            IBlockState state = this.worldProvider.world.getBlockState(thruster);
             int facing = state.getBlock().getMetaFromState(state) & 8;
             if (facing == 0)
             {
@@ -427,14 +427,14 @@ public class SpinManager
             {
                 float xx = thruster.getX() - this.massCentreX;
                 float zz = thruster.getZ() - this.massCentreZ;
-                netTorque += MathHelper.sqrt_float(xx * xx + zz * zz);
+                netTorque += MathHelper.sqrt(xx * xx + zz * zz);
                 countThrusters++;
             }
             for (BlockPos thruster : this.thrustersMinus)
             {
                 float xx = thruster.getX() - this.massCentreX;
                 float zz = thruster.getZ() - this.massCentreZ;
-                netTorque -= MathHelper.sqrt_float(xx * xx + zz * zz);
+                netTorque -= MathHelper.sqrt(xx * xx + zz * zz);
                 countThrustersReverse++;
             }
 
@@ -454,7 +454,7 @@ public class SpinManager
                 float maxRx = Math.max(this.ssBoundsMaxX - this.massCentreX, this.massCentreX - this.ssBoundsMinX);
                 float maxRz = Math.max(this.ssBoundsMaxZ - this.massCentreZ, this.massCentreZ - this.ssBoundsMinZ);
                 float maxR = Math.max(maxRx, maxRz);
-                this.angularVelocityTarget = MathHelper.sqrt_float(GFORCE / maxR) / 2;
+                this.angularVelocityTarget = MathHelper.sqrt(GFORCE / maxR) / 2;
                 //The divide by 2 is not scientific but is a Minecraft factor as everything happens more quickly
                 float spinCap = 0.00125F * countThrusters;
 
@@ -497,7 +497,7 @@ public class SpinManager
         {
             if (this.dataNotLoaded)
             {
-                this.savefile = OrbitSpinSaveData.initWorldData(this.worldProvider.worldObj);
+                this.savefile = OrbitSpinSaveData.initWorldData(this.worldProvider.world);
                 this.readFromNBT(this.savefile.datacompound);
                 if (ConfigManagerCore.enableDebug)
                 {
@@ -551,7 +551,7 @@ public class SpinManager
 
             //Update entity positions if in freefall
             this.loadedEntities.clear();
-            this.loadedEntities.addAll(this.worldProvider.worldObj.loadedEntityList);
+            this.loadedEntities.addAll(this.worldProvider.world.loadedEntityList);
             for (Entity e : this.loadedEntities)
             {
                 //TODO: What about vehicles from GC (buggies) and other mods?
@@ -561,7 +561,7 @@ public class SpinManager
                     boolean outsideStation = entityBoundingBox.maxX < this.ssBoundsMinX || entityBoundingBox.minX > this.ssBoundsMaxX || entityBoundingBox.maxY < this.ssBoundsMinY ||
                             entityBoundingBox.minY > this.ssBoundsMaxY || entityBoundingBox.maxZ < this.ssBoundsMinZ || entityBoundingBox.minZ > this.ssBoundsMaxZ;
 
-                    if (outsideStation || FreefallHandler.testEntityFreefall(this.worldProvider.worldObj, entityBoundingBox))
+                    if (outsideStation || FreefallHandler.testEntityFreefall(this.worldProvider.world, entityBoundingBox))
                     {
                         if (this.doSpinning)
                         {
@@ -616,7 +616,7 @@ public class SpinManager
             e.lastTickPosZ += offsetZ;
 
             //Rotated into an unloaded chunk (probably also drifted out to there): byebye
-            if (!e.worldObj.isBlockLoaded(new BlockPos(MathHelper.floor_double(e.posX), 64, MathHelper.floor_double(e.posZ))))
+            if (!e.world.isBlockLoaded(new BlockPos(MathHelper.floor(e.posX), 64, MathHelper.floor(e.posZ))))
             {
                 e.setDead();
                 return;
@@ -685,13 +685,13 @@ public class SpinManager
 
             //Check for block collisions here - if so move the player appropriately
             //First check that there are no existing collisions where the player is now (TODO: bounce the player away)
-            if (p.worldObj.getCollisionBoxes(p, p.getEntityBoundingBox()).size() == 0)
+            if (p.world.getCollisionBoxes(p, p.getEntityBoundingBox()).size() == 0)
             {
                 //Now check for collisions in the new direction and if there are some, try reducing the movement
                 int collisions = 0;
                 do
                 {
-                    List<AxisAlignedBB> list = p.worldObj.getCollisionBoxes(p, p.getEntityBoundingBox().addCoord(offsetX, 0.0D, offsetZ));
+                    List<AxisAlignedBB> list = p.world.getCollisionBoxes(p, p.getEntityBoundingBox().expand(offsetX, 0.0D, offsetZ));
                     collisions = list.size();
                     if (collisions > 0)
                     {
@@ -802,7 +802,7 @@ public class SpinManager
         }
         else
         {
-            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(PacketSimple.EnumSimplePacket.C_UPDATE_STATION_SPIN, GCCoreUtil.getDimensionID(player.worldObj), objList), player);
+            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(PacketSimple.EnumSimplePacket.C_UPDATE_STATION_SPIN, GCCoreUtil.getDimensionID(player.world), objList), player);
         }
 
         objList = new ArrayList<>();
@@ -814,7 +814,7 @@ public class SpinManager
         }
         else
         {
-            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(PacketSimple.EnumSimplePacket.C_UPDATE_STATION_DATA, GCCoreUtil.getDimensionID(player.worldObj), objList), player);
+            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(PacketSimple.EnumSimplePacket.C_UPDATE_STATION_DATA, GCCoreUtil.getDimensionID(player.world), objList), player);
         }
 
         objList = new ArrayList<>();
@@ -830,7 +830,7 @@ public class SpinManager
         }
         else
         {
-            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(PacketSimple.EnumSimplePacket.C_UPDATE_STATION_BOX, GCCoreUtil.getDimensionID(player.worldObj), objList), player);
+            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(PacketSimple.EnumSimplePacket.C_UPDATE_STATION_BOX, GCCoreUtil.getDimensionID(player.world), objList), player);
         }
     }
 
@@ -838,7 +838,7 @@ public class SpinManager
     {
         if (this.savefile == null)
         {
-            this.savefile = OrbitSpinSaveData.initWorldData(this.worldProvider.worldObj);
+            this.savefile = OrbitSpinSaveData.initWorldData(this.worldProvider.world);
             this.dataNotLoaded = false;
         }
         else

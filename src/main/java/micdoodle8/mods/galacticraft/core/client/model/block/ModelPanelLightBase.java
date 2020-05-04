@@ -41,7 +41,7 @@ public class ModelPanelLightBase implements IBakedModel
                     return Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelShapes().getModelManager().getModel(this.callingBlock).getQuads(state, side, rand);
                 }
             }
-            else if (layer == null || baseState.getBlock().canRenderInLayer(layer))
+            else if (layer == null || baseState.getBlock().canRenderInLayer(baseState, layer))
             {
                 return Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelShapes().getModelForState(baseState).getQuads(baseState, side, rand);
             }

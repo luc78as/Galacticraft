@@ -7,12 +7,12 @@ import micdoodle8.mods.galacticraft.core.GCItems;
 import micdoodle8.mods.galacticraft.core.GalacticraftCore;
 import micdoodle8.mods.galacticraft.core.blocks.BlockOxygenSealer;
 import micdoodle8.mods.galacticraft.core.energy.item.ItemElectricBase;
+import micdoodle8.mods.galacticraft.core.energy.tile.EnergyStorageTile;
 import micdoodle8.mods.galacticraft.core.fluid.OxygenPressureProtocol;
 import micdoodle8.mods.galacticraft.core.fluid.ThreadFindSeal;
 import micdoodle8.mods.galacticraft.core.inventory.IInventoryDefaults;
 import micdoodle8.mods.galacticraft.core.network.PacketSimple;
 import micdoodle8.mods.galacticraft.core.network.PacketSimple.EnumSimplePacket;
-import micdoodle8.mods.galacticraft.core.energy.tile.EnergyStorageTile;
 import micdoodle8.mods.galacticraft.core.util.FluidUtil;
 import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
 import micdoodle8.mods.miccore.Annotations.NetworkedField;
@@ -20,11 +20,11 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.ISidedInventory;
+import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -34,7 +34,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 
-public class TileEntityOxygenSealer extends TileEntityOxygen implements IInventoryDefaults, ISidedInventory, ITileClientUpdates
+public class TileEntityOxygenSealer extends TileEntityOxygen implements ITileClientUpdates
 {
     @NetworkedField(targetSide = Side.CLIENT)
     public boolean sealed;
@@ -44,7 +44,6 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
 
     @NetworkedField(targetSide = Side.CLIENT)
     public boolean active;
-    private ItemStack[] containingItems = new ItemStack[3];
     public ThreadFindSeal threadSeal;
     @NetworkedField(targetSide = Side.CLIENT)
     public int stopSealThreadCooldown;
@@ -62,17 +61,18 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
 
     public TileEntityOxygenSealer()
     {
-        super(10000, UNSEALED_OXYGENPERTICK);
+        super("container.oxygensealer.name", 10000, UNSEALED_OXYGENPERTICK);
         this.noRedstoneControl = true;
         this.storage.setMaxExtract(5.0F);  //Half of a standard machine's power draw
         this.storage.setMaxReceive(25.0F);
         this.storage.setCapacity(EnergyStorageTile.STANDARD_CAPACITY * 2);  //Large capacity so it can keep working for a while even if chunk unloads affect its power supply
+        inventory = NonNullList.withSize(3, ItemStack.EMPTY);
     }
 
     @Override
     public void onLoad()
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             if (!TileEntityOxygenSealer.loadedTiles.contains(this))
             {
@@ -89,7 +89,7 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
     @Override
     public void invalidate()
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             TileEntityOxygenSealer.loadedTiles.remove(this);
         }
@@ -99,7 +99,7 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
     @Override
     public void onChunkUnload()
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             TileEntityOxygenSealer.loadedTiles.remove(this);
         }
@@ -122,8 +122,8 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
             return 0;
         }
         BlockPos posAbove = new BlockPos(this.getPos().getX(), this.getPos().getY() + 1, this.getPos().getZ());
-        IBlockState stateAbove = this.worldObj.getBlockState(posAbove);
-        if (!(stateAbove.getBlock().isAir(stateAbove, this.worldObj, posAbove)) && !OxygenPressureProtocol.canBlockPassAir(this.worldObj, stateAbove.getBlock(), this.getPos().up(), EnumFacing.UP))
+        IBlockState stateAbove = this.world.getBlockState(posAbove);
+        if (!(stateAbove.getBlock().isAir(stateAbove, this.world, posAbove)) && !OxygenPressureProtocol.canBlockPassAir(this.world, stateAbove.getBlock(), this.getPos().up(), EnumFacing.UP))
         {
             // The vent is blocked
             return 0;
@@ -141,7 +141,7 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
     @Override
     public void update()
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             ItemStack oxygenItemStack = this.getStackInSlot(1);
             if (oxygenItemStack != null && oxygenItemStack.getItem() instanceof IItemOxygenSupply)
@@ -172,7 +172,7 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
         this.oxygenPerTick = this.sealed ? 2 : UNSEALED_OXYGENPERTICK;
         super.update();
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             // Some code to count the number of Oxygen Sealers being updated,
             // tick by tick - needed for queueing
@@ -230,135 +230,6 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
         TileEntityOxygenSealer.sealerCheckedThisTick = false;
     }
 
-    @Override
-    public void readFromNBT(NBTTagCompound nbt)
-    {
-        super.readFromNBT(nbt);
-
-        final NBTTagList var2 = nbt.getTagList("Items", 10);
-        this.containingItems = new ItemStack[this.getSizeInventory()];
-
-        for (int var3 = 0; var3 < var2.tagCount(); ++var3)
-        {
-            final NBTTagCompound var4 = var2.getCompoundTagAt(var3);
-            final int var5 = var4.getByte("Slot") & 255;
-
-            if (var5 < this.containingItems.length)
-            {
-                this.containingItems[var5] = ItemStack.loadItemStackFromNBT(var4);
-            }
-        }
-    }
-
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound nbt)
-    {
-        super.writeToNBT(nbt);
-
-        final NBTTagList list = new NBTTagList();
-
-        for (int var3 = 0; var3 < this.containingItems.length; ++var3)
-        {
-            if (this.containingItems[var3] != null)
-            {
-                final NBTTagCompound var4 = new NBTTagCompound();
-                var4.setByte("Slot", (byte) var3);
-                this.containingItems[var3].writeToNBT(var4);
-                list.appendTag(var4);
-            }
-        }
-
-        nbt.setTag("Items", list);
-        return nbt;
-    }
-
-    @Override
-    public int getSizeInventory()
-    {
-        return this.containingItems.length;
-    }
-
-    @Override
-    public ItemStack getStackInSlot(int par1)
-    {
-        return this.containingItems[par1];
-    }
-
-    @Override
-    public ItemStack decrStackSize(int par1, int par2)
-    {
-        if (this.containingItems[par1] != null)
-        {
-            ItemStack var3;
-
-            if (this.containingItems[par1].stackSize <= par2)
-            {
-                var3 = this.containingItems[par1];
-                this.containingItems[par1] = null;
-                return var3;
-            }
-            else
-            {
-                var3 = this.containingItems[par1].splitStack(par2);
-
-                if (this.containingItems[par1].stackSize == 0)
-                {
-                    this.containingItems[par1] = null;
-                }
-
-                return var3;
-            }
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    @Override
-    public ItemStack removeStackFromSlot(int par1)
-    {
-        if (this.containingItems[par1] != null)
-        {
-            final ItemStack var2 = this.containingItems[par1];
-            this.containingItems[par1] = null;
-            return var2;
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    @Override
-    public void setInventorySlotContents(int par1, ItemStack par2ItemStack)
-    {
-        this.containingItems[par1] = par2ItemStack;
-
-        if (par2ItemStack != null && par2ItemStack.stackSize > this.getInventoryStackLimit())
-        {
-            par2ItemStack.stackSize = this.getInventoryStackLimit();
-        }
-    }
-
-    @Override
-    public String getName()
-    {
-        return GCCoreUtil.translate("container.oxygensealer.name");
-    }
-
-    @Override
-    public int getInventoryStackLimit()
-    {
-        return 64;
-    }
-
-    @Override
-    public boolean isUseableByPlayer(EntityPlayer par1EntityPlayer)
-    {
-        return this.worldObj.getTileEntity(this.getPos()) == this && par1EntityPlayer.getDistanceSq(this.getPos().getX() + 0.5D, this.getPos().getY() + 0.5D, this.getPos().getZ() + 0.5D) <= 64.0D;
-    }
-
     // ISidedInventory Implementation:
 
     @Override
@@ -410,7 +281,7 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
     @Override
     public boolean isItemValidForSlot(int slotID, ItemStack itemstack)
     {
-        if (itemstack == null)
+        if (itemstack.isEmpty())
         {
             return false;
         }
@@ -438,7 +309,7 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
     @Override
     public EnumFacing getFront()
     {
-        IBlockState state = this.worldObj.getBlockState(getPos()); 
+        IBlockState state = this.world.getBlockState(getPos()); 
         if (state.getBlock() instanceof BlockOxygenSealer)
         {
             return state.getValue(BlockOxygenSealer.FACING);
@@ -526,13 +397,14 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
             int dx = vec.x - this.pos.getX() + 128;
             int dz = vec.z - this.pos.getZ() + 128;
             int dy = vec.y;
-            if (dx < 0 || dx > 255 || dz < 0 || dz > 255)
-                continue;
-            
-            int composite = dz + ((dy + (dx << 8)) << 8);
+            int composite;
+            if (dx < 0 || dx > 255 || dz < 0 || dz > 255 || dy < 0)
+                composite = -1;
+            else
+                composite = dz + ((dy + (dx << 8)) << 8);
             data[index++] = composite;
         }
-        GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_LEAK_DATA, GCCoreUtil.getDimensionID(player.worldObj), new Object[] { ((TileEntity)this).getPos(), data }), player);
+        GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_LEAK_DATA, GCCoreUtil.getDimensionID(player.world), new Object[] { this.getPos(), data }), player);
     }
 
     @Override
@@ -550,10 +422,13 @@ public class TileEntityOxygenSealer extends TileEntityOxygen implements IInvento
             for (int i = 1; i < data.size(); i ++)
             {
                 int comp = (Integer) data.get(i);
-                int dx = (comp >> 16) - 128;
-                int dy = (comp >> 8) & 255;
-                int dz = (comp & 255) - 128;
-                this.leaksClient.add(new BlockVec3(this.pos.getX() + dx, dy, this.pos.getZ() + dz));
+                if (comp >= 0)
+                {
+                    int dx = (comp >> 16) - 128;
+                    int dy = (comp >> 8) & 255;
+                    int dz = (comp & 255) - 128;
+                    this.leaksClient.add(new BlockVec3(this.pos.getX() + dx, dy, this.pos.getZ() + dz));
+                }
             }
         }
     }

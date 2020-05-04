@@ -25,6 +25,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.IStringSerializable;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -36,7 +37,6 @@ import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.util.List;
 import java.util.Random;
 
 public class BlockBasicMars extends Block implements IDetectableResource, IPlantableBlock, ITerraformableBlock, ISortableBlock
@@ -70,9 +70,10 @@ public class BlockBasicMars extends Block implements IDetectableResource, IPlant
             return this.meta;
         }
 
+        private final static EnumBlockBasic[] values = values();
         public static EnumBlockBasic byMetadata(int meta)
         {
-            return values()[meta];
+            return values[meta % values.length];
         }
 
         @Override
@@ -89,7 +90,7 @@ public class BlockBasicMars extends Block implements IDetectableResource, IPlant
     }
 
     @Override
-    public MapColor getMapColor(IBlockState state)
+    public MapColor getMapColor(IBlockState state, IBlockAccess worldIn, BlockPos pos)
     {
         if (state.getValue(BASIC_TYPE) == EnumBlockBasic.DUNGEON_BRICK)
         {
@@ -182,11 +183,11 @@ public class BlockBasicMars extends Block implements IDetectableResource, IPlant
 
     @SideOnly(Side.CLIENT)
     @Override
-    public void getSubBlocks(Item par1, CreativeTabs par2CreativeTabs, List<ItemStack> par3List)
+    public void getSubBlocks(CreativeTabs tab, NonNullList<ItemStack> list)
     {
         for (EnumBlockBasic blockBasic : EnumBlockBasic.values())
         {
-            par3List.add(new ItemStack(par1, 1, blockBasic.getMeta()));
+            list.add(new ItemStack(this, 1, blockBasic.getMeta()));
         }
     }
 
@@ -312,7 +313,7 @@ public class BlockBasicMars extends Block implements IDetectableResource, IPlant
         if (meta == 2)
         {
             Random rand = world instanceof World ? ((World)world).rand : new Random();
-            return MathHelper.getRandomIntegerInRange(rand, 2, 5);
+            return MathHelper.getInt(rand, 2, 5);
         }
         return 0;
     }

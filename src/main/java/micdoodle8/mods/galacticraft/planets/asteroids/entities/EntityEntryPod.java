@@ -11,7 +11,6 @@ import net.minecraft.client.particle.Particle;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -82,7 +81,7 @@ public class EntityEntryPod extends EntityLanderBase implements IScaleableFuelLe
     {
         super.tickInAir();
 
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             if (!this.onGround)
             {
@@ -95,7 +94,7 @@ public class EntityEntryPod extends EntityLanderBase implements IScaleableFuelLe
     public void onGroundHit()
     {
         BlockPos pos = new BlockPos(this).up(2);
-        this.worldObj.setBlockState(pos, GCBlocks.brightAir.getDefaultState(), 2);
+        this.world.setBlockState(pos, GCBlocks.brightAir.getDefaultState(), 2);
     }
 
     @Override
@@ -175,9 +174,9 @@ public class EntityEntryPod extends EntityLanderBase implements IScaleableFuelLe
     }
 
     @Override
-    public boolean processInitialInteract(EntityPlayer player, ItemStack stack, EnumHand hand)
+    public boolean processInitialInteract(EntityPlayer player, EnumHand hand)
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             if (!this.onGround)
             {

@@ -8,14 +8,14 @@ public class Constants
 
     public static final int LOCALMAJVERSION = 4;
     public static final int LOCALMINVERSION = 0;
-    public static final int LOCALPATCHVERSION = 1;
+    public static final int LOCALPATCHVERSION = 2;
     public static final int LOCALBUILDVERSION = -1; // Replaced by jenkins build
     public static final String COMBINEDVERSION = LOCALMAJVERSION + "." + LOCALMINVERSION + "." + LOCALPATCHVERSION + "." + LOCALBUILDVERSION;
     
-    public static final String MCVERSION = "[1.10.2]";
-    public static final String DEPENDENCIES_FORGE = "required-after:Forge@[12.18.2.2171,); required-after:FML@[8.0.99.99,); ";  //Keep the space at the end!
-    public static final String DEPENDENCIES_MICCORE = "required-after:Micdoodlecore; ";  //Keep the space at the end!
-    public static final String DEPENDENCIES_MODS = "after:IC2; after:TConstruct; after:Mantle;";
+    public static final String MCVERSION = "[1.12.2]";
+    public static final String DEPENDENCIES_FORGE = "required-after:forge@[14.23.1.2555,); ";  //Keep the space at the end!
+    public static final String DEPENDENCIES_MICCORE = "required-after:micdoodlecore; ";  //Keep the space at the end!
+    public static final String DEPENDENCIES_MODS = "after:ic2; after:tconstruct; after:mantle;";
 
     public static final String CONFIG_CATEGORY_DIMENSIONS = "dimensions";
     public static final String CONFIG_CATEGORY_ENTITIES = "entities";

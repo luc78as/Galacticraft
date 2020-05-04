@@ -76,7 +76,7 @@ public class ConnectionEvents
             EntityPlayerMP thePlayer = (EntityPlayerMP) event.player;
             GCPlayerStats stats = GCPlayerStats.get(thePlayer);
             SpaceStationWorldData.checkAllStations(thePlayer, stats);
-            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_UPDATE_SPACESTATION_CLIENT_ID, GCCoreUtil.getDimensionID(thePlayer.worldObj), new Object[] { WorldUtil.spaceStationDataToString(stats.getSpaceStationDimensionData()) }), thePlayer);
+            GalacticraftCore.packetPipeline.sendTo(new PacketSimple(EnumSimplePacket.C_UPDATE_SPACESTATION_CLIENT_ID, GCCoreUtil.getDimensionID(thePlayer.world), new Object[] { WorldUtil.spaceStationDataToString(stats.getSpaceStationDimensionData()) }), thePlayer);
             SpaceRace raceForPlayer = SpaceRaceManager.getSpaceRaceFromPlayer(PlayerUtil.getName(thePlayer));
             if (raceForPlayer != null)
             {
@@ -84,9 +84,9 @@ public class ConnectionEvents
             }
         }
 
-        if (event.player.worldObj.provider instanceof WorldProviderSpaceStation && event.player instanceof EntityPlayerMP)
+        if (event.player.world.provider instanceof WorldProviderSpaceStation && event.player instanceof EntityPlayerMP)
         {
-            ((WorldProviderSpaceStation) event.player.worldObj.provider).getSpinManager().sendPackets((EntityPlayerMP) event.player);
+            ((WorldProviderSpaceStation) event.player.world.provider).getSpinManager().sendPackets((EntityPlayerMP) event.player);
         }
     }
 

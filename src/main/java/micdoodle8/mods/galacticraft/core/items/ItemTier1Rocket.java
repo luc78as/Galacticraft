@@ -14,6 +14,7 @@ import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.EnumRarity;
@@ -21,9 +22,10 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.NonNullList;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.client.FMLClientHandler;
@@ -31,6 +33,8 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 public class ItemTier1Rocket extends Item implements IHoldableItem, ISortableItem
 {
@@ -51,8 +55,9 @@ public class ItemTier1Rocket extends Item implements IHoldableItem, ISortableIte
     }
 
     @Override
-    public EnumActionResult onItemUse(ItemStack stack, EntityPlayer playerIn, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ)
+    public EnumActionResult onItemUse(EntityPlayer playerIn, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ)
     {
+        ItemStack stack = playerIn.getHeldItem(hand);
         boolean padFound = false;
         TileEntity tile = null;
 
@@ -104,12 +109,7 @@ public class ItemTier1Rocket extends Item implements IHoldableItem, ISortableIte
 
                 if (!playerIn.capabilities.isCreativeMode)
                 {
-                    stack.stackSize--;
-
-                    if (stack.stackSize <= 0)
-                    {
-                        stack = null;
-                    }
+                    stack.shrink(1);
                 }
                 return EnumActionResult.SUCCESS;
             }
@@ -138,7 +138,7 @@ public class ItemTier1Rocket extends Item implements IHoldableItem, ISortableIte
         final EntityTier1Rocket spaceship = new EntityTier1Rocket(worldIn, centerX, centerY, centerZ, EnumRocketType.values()[stack.getItemDamage()]);
 
         spaceship.setPosition(spaceship.posX, spaceship.posY + spaceship.getOnPadYOffset(), spaceship.posZ);
-        worldIn.spawnEntityInWorld(spaceship);
+        worldIn.spawnEntity(spaceship);
 
         if (spaceship.rocketType.getPreFueled())
         {
@@ -153,11 +153,14 @@ public class ItemTier1Rocket extends Item implements IHoldableItem, ISortableIte
     }
 
     @Override
-    public void getSubItems(Item par1, CreativeTabs par2CreativeTabs, List<ItemStack> par3List)
+    public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> list)
     {
-        for (int i = 0; i < EnumRocketType.values().length; i++)
+        if (tab == GalacticraftCore.galacticraftItemsTab || tab == CreativeTabs.SEARCH)
         {
-            par3List.add(new ItemStack(par1, 1, i));
+            for (int i = 0; i < EnumRocketType.values().length; i++)
+            {
+                list.add(new ItemStack(this, 1, i));
+            }
         }
     }
 
@@ -170,7 +173,7 @@ public class ItemTier1Rocket extends Item implements IHoldableItem, ISortableIte
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack par1ItemStack, EntityPlayer player, List<String> tooltip, boolean b)
+    public void addInformation(ItemStack par1ItemStack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn)
     {
         EnumRocketType type = EnumRocketType.values()[par1ItemStack.getItemDamage()];
 

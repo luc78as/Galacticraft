@@ -18,6 +18,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.IStringSerializable;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
@@ -60,9 +61,10 @@ public class BlockBasicAsteroids extends Block implements IDetectableResource, I
             return this.meta;
         }
 
+        private final static EnumBlockBasic[] values = values();
         public static EnumBlockBasic byMetadata(int meta)
         {
-            return values()[meta];
+            return values[meta % values.length];
         }
 
         @Override
@@ -139,13 +141,13 @@ public class BlockBasicAsteroids extends Block implements IDetectableResource, I
 
     @SideOnly(Side.CLIENT)
     @Override
-    public void getSubBlocks(Item par1, CreativeTabs par2CreativeTabs, List<ItemStack> par3List)
+    public void getSubBlocks(CreativeTabs tab, NonNullList<ItemStack> list)
     {
         int var4;
 
         for (var4 = 0; var4 < EnumBlockBasic.values().length; ++var4)
         {
-            par3List.add(new ItemStack(par1, 1, var4));
+            list.add(new ItemStack(this, 1, var4));
         }
     }
 
@@ -242,7 +244,7 @@ public class BlockBasicAsteroids extends Block implements IDetectableResource, I
         if (meta == 4)
         {
             Random rand = world instanceof World ? ((World)world).rand : new Random();
-            return MathHelper.getRandomIntegerInRange(rand, 2, 3);
+            return MathHelper.getInt(rand, 2, 3);
         }
         return 0;
     }

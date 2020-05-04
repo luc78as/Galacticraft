@@ -8,7 +8,6 @@ import net.minecraft.item.ItemStack;
 import javax.annotation.Nonnull;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class NBTSensitiveShapedRecipeWrapper extends BlankRecipeWrapper implements IShapedCraftingRecipeWrapper
@@ -19,31 +18,6 @@ public class NBTSensitiveShapedRecipeWrapper extends BlankRecipeWrapper implemen
     public NBTSensitiveShapedRecipeWrapper(@Nonnull ShapedRecipeNBT recipe)
     {
         this.recipe = recipe;
-        for (Object input : this.recipe.recipeItems)
-        {
-            if (input instanceof ItemStack)
-            {
-                ItemStack itemStack = (ItemStack) input;
-                if (itemStack.stackSize != 1)
-                {
-                    itemStack.stackSize = 1;
-                }
-            }
-        }
-    }
-
-    @Nonnull
-    @Override
-    public List getInputs()
-    {
-        return Arrays.asList(recipe.recipeItems);
-    }
-
-    @Nonnull
-    @Override
-    public List<ItemStack> getOutputs()
-    {
-        return Collections.singletonList(recipe.getRecipeOutput().copy());
     }
 
     @Override
@@ -58,11 +32,6 @@ public class NBTSensitiveShapedRecipeWrapper extends BlankRecipeWrapper implemen
                 ingredients.setOutput(ItemStack.class, recipeOutput);
             }
         } catch (RuntimeException e) { e.printStackTrace(); }
-    }
-
-    public boolean matches(ShapedRecipeNBT test)
-    {
-        return this.recipe == test;
     }
 
     @Override

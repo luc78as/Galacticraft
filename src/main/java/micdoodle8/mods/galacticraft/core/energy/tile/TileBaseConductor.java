@@ -34,7 +34,7 @@ public abstract class TileBaseConductor extends TileEntity implements IConductor
     public void validate()
     {
         super.validate();
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             TickHandlerServer.energyTransmitterUpdates.add(this);
         }
@@ -43,7 +43,7 @@ public abstract class TileBaseConductor extends TileEntity implements IConductor
     @Override
     public void invalidate()
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             this.getNetwork().split(this);
         }
@@ -80,7 +80,7 @@ public abstract class TileBaseConductor extends TileEntity implements IConductor
     @Override
     public void refresh()
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             this.adjacentConnections = null;
 
@@ -89,7 +89,7 @@ public abstract class TileBaseConductor extends TileEntity implements IConductor
             BlockVec3 thisVec = new BlockVec3(this);
             for (EnumFacing side : EnumFacing.VALUES)
             {
-            	TileEntity tileEntity = thisVec.getTileEntityOnSide(this.worldObj, side);
+            	TileEntity tileEntity = thisVec.getTileEntityOnSide(this.world, side);
 
             	if (tileEntity instanceof TileBaseConductor && ((TileBaseConductor)tileEntity).canConnect(side.getOpposite(), NetworkType.POWER))
             	{
@@ -120,7 +120,7 @@ public abstract class TileBaseConductor extends TileEntity implements IConductor
             for (int i = 0; i < 6; i++)
             {
                 EnumFacing side = EnumFacing.getFront(i);
-                TileEntity tileEntity = thisVec.getTileEntityOnSide(this.worldObj, side);
+                TileEntity tileEntity = thisVec.getTileEntityOnSide(this.world, side);
 
                 if (tileEntity instanceof IConnector)
                 {

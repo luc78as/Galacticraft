@@ -11,7 +11,6 @@ import net.minecraft.client.particle.Particle;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumHand;
@@ -111,9 +110,9 @@ public class EntityLandingBalloons extends EntityLanderBase implements IIgnoreSh
     }
 
     @Override
-    public boolean processInitialInteract(EntityPlayer player, ItemStack stack, EnumHand hand)
+    public boolean processInitialInteract(EntityPlayer player, EnumHand hand)
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             if (!this.onGround)
             {
@@ -209,7 +208,7 @@ public class EntityLandingBalloons extends EntityLanderBase implements IIgnoreSh
     @Override
     public void tickInAir()
     {
-        if (this.worldObj.isRemote)
+        if (this.world.isRemote)
         {
             if (this.groundHitCount == 0)
             {
@@ -277,7 +276,7 @@ public class EntityLandingBalloons extends EntityLanderBase implements IIgnoreSh
     {
         ArrayList<Object> objList = new ArrayList<Object>();
         objList.addAll(super.getNetworkedData());
-        if ((this.worldObj.isRemote && this.hasReceivedPacket && this.groundHitCount <= 14) || (!this.worldObj.isRemote && this.groundHitCount == 14))
+        if ((this.world.isRemote && this.hasReceivedPacket && this.groundHitCount <= 14) || (!this.world.isRemote && this.groundHitCount == 14))
         {
             objList.add(this.groundHitCount);
         }

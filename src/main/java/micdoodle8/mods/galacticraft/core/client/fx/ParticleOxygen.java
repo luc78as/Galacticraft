@@ -2,7 +2,7 @@ package micdoodle8.mods.galacticraft.core.client.fx;
 
 import micdoodle8.mods.galacticraft.api.vector.Vector3;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.renderer.VertexBuffer;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -41,7 +41,7 @@ public class ParticleOxygen extends Particle
     }
 
     @Override
-    public void renderParticle(VertexBuffer worldRendererIn, Entity entityIn, float partialTicks, float rotationX, float rotationZ, float rotationYZ, float rotationXY, float rotationXZ)
+    public void renderParticle(BufferBuilder worldRendererIn, Entity entityIn, float partialTicks, float rotationX, float rotationZ, float rotationYZ, float rotationXY, float rotationXZ)
     {
         float var8 = (this.particleAge + partialTicks) / this.particleMaxAge;
         var8 = 1.0F - var8;
@@ -54,7 +54,7 @@ public class ParticleOxygen extends Particle
     @Override
     public int getBrightnessForRender(float par1)
     {
-        long time = this.worldObj.getWorldTime(); 
+        long time = this.world.getWorldTime();
         if (time > tick)
         {
             cacheLighting.clear();
@@ -68,7 +68,7 @@ public class ParticleOxygen extends Particle
         }
         else
         {
-            var2 = this.worldObj.isBlockLoaded(blockpos) ? this.worldObj.getCombinedLight(blockpos, 0) : 0;
+            var2 = this.world.isBlockLoaded(blockpos) ? this.world.getCombinedLight(blockpos, 0) : 0;
             cacheLighting.put(blockpos, var2);
         }
         float var3 = (float) this.particleAge / (float) this.particleMaxAge;

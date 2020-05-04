@@ -1,9 +1,9 @@
 package micdoodle8.mods.galacticraft.planets.asteroids.recipe;
 
+import micdoodle8.mods.galacticraft.api.GalacticraftRegistry;
 import micdoodle8.mods.galacticraft.api.recipe.CompressorRecipes;
-import micdoodle8.mods.galacticraft.core.GCBlocks;
 import micdoodle8.mods.galacticraft.core.GCItems;
-import micdoodle8.mods.galacticraft.core.blocks.BlockMachineTiered;
+import micdoodle8.mods.galacticraft.core.recipe.NasaWorkbenchRecipe;
 import micdoodle8.mods.galacticraft.core.util.CompatibilityManager;
 import micdoodle8.mods.galacticraft.core.util.RecipeUtil;
 import micdoodle8.mods.galacticraft.planets.asteroids.blocks.AsteroidBlocks;
@@ -13,23 +13,17 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.FurnaceRecipes;
+import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.util.NonNullList;
 import net.minecraftforge.oredict.OreDictionary;
-import java.util.ArrayList;
-import java.util.List;
+
+import java.util.HashMap;
 
 public class RecipeManagerAsteroids
 {
-    public static void loadRecipes()
-    {
-        // Add compatibility stuffz here
-
-        addUniversalRecipes();
-    }
-
-    private static void addUniversalRecipes()
+    public static void addUniversalRecipes()
     {
         ItemStack titaniumIngot = new ItemStack(AsteroidsItems.basicItem, 1, 0);
-    	ItemStack titaniumPlate = new ItemStack(AsteroidsItems.basicItem, 1, 6);
     	ItemStack platingTier3 = new ItemStack(AsteroidsItems.basicItem, 1, 5);
     	
         FurnaceRecipes.instance().addSmeltingRecipe(new ItemStack(AsteroidBlocks.blockBasic, 1, 3), new ItemStack(GCItems.basicItem, 1, 5), 0.5F);
@@ -38,65 +32,6 @@ public class RecipeManagerAsteroids
         FurnaceRecipes.instance().addSmeltingRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 3), new ItemStack(Items.IRON_INGOT), 0.5F);
         FurnaceRecipes.instance().addSmeltingRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 4), new ItemStack(AsteroidsItems.basicItem, 1, 0), 0.5F);
         FurnaceRecipes.instance().addSmeltingRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 9), new ItemStack(AsteroidsItems.basicItem, 1, 0), 0.5F);
-
-        RecipeUtil.addBlockRecipe(new ItemStack(AsteroidBlocks.blockBasic, 1, 7), "ingotTitanium", new ItemStack(AsteroidsItems.basicItem, 1, 0));
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.basicItem, 9, 0), new Object[] {"X", 'X', new ItemStack(AsteroidBlocks.blockBasic, 1, 7)});
-
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.heavyNoseCone, 1), new Object[] { " Y ", " X ", "X X", 'X', platingTier3, 'Y', Blocks.REDSTONE_TORCH });
-
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 7), new Object[] { " X ", "XYX", " X ", 'X', Blocks.WOOL, 'Y', Items.REDSTONE });
-
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.thermalPadding, 1, 0), new Object[] { "XXX", "X X", 'X', new ItemStack(AsteroidsItems.basicItem, 1, 7) });
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.thermalPadding, 1, 1), new Object[] { "X X", "XXX", "XXX", 'X', new ItemStack(AsteroidsItems.basicItem, 1, 7) });
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.thermalPadding, 1, 2), new Object[] { "XXX", "X X", "X X", 'X', new ItemStack(AsteroidsItems.basicItem, 1, 7) });
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.thermalPadding, 1, 3), new Object[] { "X X", "X X", 'X', new ItemStack(AsteroidsItems.basicItem, 1, 7) });
-
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumHelmet, 1), new Object[] { "XXX", "X X", 'X', titaniumPlate });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumChestplate, 1), new Object[] { "X X", "XXX", "XXX", 'X', titaniumPlate });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumLeggings, 1), new Object[] { "XXX", "X X", "X X", 'X', titaniumPlate });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumBoots, 1), new Object[] { "X X", "X X", 'X', titaniumPlate });
-
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumPickaxe, 1), new Object[] { "YYY", " X ", " X ", 'Y', titaniumPlate, 'X', Items.IRON_INGOT });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumAxe, 1), new Object[] { "YY ", "YX ", " X ", 'Y', titaniumPlate, 'X', Items.IRON_INGOT });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumAxe, 1), new Object[] { " YY", " XY", " X ", 'Y', titaniumPlate, 'X', Items.IRON_INGOT });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumHoe, 1), new Object[] { " YY", " X ", " X ", 'Y', titaniumPlate, 'X', Items.IRON_INGOT });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumHoe, 1), new Object[] { "YY ", " X ", " X ", 'Y', titaniumPlate, 'X', Items.IRON_INGOT });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumSpade, 1), new Object[] { " Y ", " X ", " X ", 'Y', titaniumPlate, 'X', Items.IRON_INGOT });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.titaniumSword, 1), new Object[] { " Y ", " Y ", " X ", 'Y', titaniumPlate, 'X', Items.IRON_INGOT });
-
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 1), new Object[] { " YV", "XWX", "XZX", 'V', Blocks.STONE_BUTTON, 'W', new ItemStack(GCItems.canister, 1, OreDictionary.WILDCARD_VALUE), 'X', platingTier3, 'Y', Items.FLINT_AND_STEEL, 'Z', GCItems.oxygenVent });
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 1), new Object[] { "VY ", "XWX", "XZX", 'V', Blocks.STONE_BUTTON, 'W', new ItemStack(GCItems.canister, 1, OreDictionary.WILDCARD_VALUE), 'X', platingTier3, 'Y', Items.FLINT_AND_STEEL, 'Z', GCItems.oxygenVent });
-
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 2), new Object[] { " Y ", "XYX", "X X", 'X', platingTier3, 'Y', new ItemStack(MarsItems.marsItemBasic, 1, 3) });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidsItems.basicItem, 1, 2), new Object[] { " Y ", "XYX", "X X", 'X', platingTier3, 'Y', titaniumPlate });
-
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.grapple, 1), new Object[] { "  Z", "XZ ", "XX ", 'X', Items.IRON_INGOT, 'Z', Items.STRING });
-
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.atmosphericValve, 1, 0), new Object[] { "   ", "XYX", " X ", 'X', new ItemStack(MarsItems.marsItemBasic, 1, 2), 'Y', GCItems.oxygenVent });
-
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidBlocks.blockWalkway, 5, 0), new Object[] { "XXX", " X ", 'X', titaniumPlate });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidBlocks.blockWalkway, 5, 1), new Object[] { "XXX", "YXY", "YYY", 'X', titaniumPlate, 'Y', new ItemStack(GCBlocks.aluminumWire, 1, 1) });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidBlocks.blockWalkway, 5, 2), new Object[] { "XXX", "YXY", "YYY", 'X', titaniumPlate, 'Y', new ItemStack(GCBlocks.oxygenPipe) });
-        RecipeUtil.addShapelessRecipe(new ItemStack(AsteroidBlocks.blockWalkway, 1, 1), new ItemStack(AsteroidBlocks.blockWalkway, 1), new ItemStack(GCBlocks.aluminumWire, 1, 1));
-        RecipeUtil.addShapelessRecipe(new ItemStack(AsteroidBlocks.blockWalkway, 1, 2), new ItemStack(AsteroidBlocks.blockWalkway, 1), new ItemStack(GCBlocks.oxygenPipe, 1));
-
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidBlocks.shortRangeTelepad), new Object[] { "XWX", "ZYZ", "XXX", 'W', new ItemStack(AsteroidsItems.basicItem, 1, 8), 'X', titaniumPlate, 'Y', Items.REDSTONE, 'Z', Items.ENDER_PEARL });
-
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 8), new Object[] { "XYX", "YZY", "XYX", 'X', Items.REDSTONE, 'Y', "compressedIron", 'Z', Blocks.GLASS_PANE });
-
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidBlocks.beamReceiver), new Object[] { " X ", "XYX", " X ", 'X', titaniumPlate, 'Y', new ItemStack(AsteroidsItems.basicItem, 1, 8) });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidBlocks.beamReflector), new Object[] { " Y ", "ZX ", "XXX", 'X', titaniumPlate, 'Y', new ItemStack(AsteroidsItems.basicItem, 1, 8), 'Z', Blocks.LEVER });
-        RecipeUtil.addRecipeUpdatable(new ItemStack(AsteroidBlocks.beamReflector), new Object[] { " Y ", " XZ", "XXX", 'X', titaniumPlate, 'Y', new ItemStack(AsteroidsItems.basicItem, 1, 8), 'Z', Blocks.LEVER });
-
-        RecipeUtil.addRecipe(new ItemStack(AsteroidBlocks.blockMinerBase, 4, 0), new Object[] { "XCX", "W W", "XBX", 'X', "compressedDesh", 'W', new ItemStack(AsteroidsItems.basicItem, 1, 8), 'C', new ItemStack(Blocks.CHEST), 'B', new ItemStack(GCBlocks.machineTiered, 1, BlockMachineTiered.STORAGE_MODULE_METADATA) });
-        RecipeUtil.addRecipe(new ItemStack(AsteroidsItems.orionDrive, 1, 0), new Object[] { "ABC", "DOE", "FGH", 'A', "oreDiamond", 'B', "oreLapis", 'C', "oreGold", 'D', "oreRedstone", 'E', "oreCoal", 'F', "oreCheese", 'G', "oreDesh", 'H', "oreIlmenite", 'O', new ItemStack(AsteroidsItems.basicItem, 1, 8) });
-
-        //Cobblestone recipe
-        RecipeUtil.addShapelessRecipe(new ItemStack(Blocks.COBBLESTONE, 2), new ItemStack(AsteroidBlocks.blockBasic, 1, 0), new ItemStack(AsteroidBlocks.blockBasic, 1, 1));
-        RecipeUtil.addShapelessRecipe(new ItemStack(Blocks.COBBLESTONE, 2), new ItemStack(AsteroidBlocks.blockBasic, 1, 0), new ItemStack(AsteroidBlocks.blockBasic, 1, 2));
-        RecipeUtil.addShapelessRecipe(new ItemStack(Blocks.COBBLESTONE, 2), new ItemStack(AsteroidBlocks.blockBasic, 1, 1), new ItemStack(AsteroidBlocks.blockBasic, 1, 2));
-        //Green dye from yellow and blue
-        RecipeUtil.addShapelessRecipe(new ItemStack(Items.DYE, 2, 2), new ItemStack(Items.DYE, 1, 11), new ItemStack(Items.DYE, 1, 4));
 
         //Cobblestone->Gravel, Gravel->Sand, Sand->Clay
         CompressorRecipes.addRecipeAdventure(new ItemStack(Blocks.GRAVEL, 9, 0), "XXX", "XXX", "XXX", 'X', new ItemStack(Blocks.COBBLESTONE, 1));
@@ -110,26 +45,109 @@ public class RecipeManagerAsteroids
     	CompressorRecipes.addShapelessAdventure(new ItemStack(Items.COAL, 2, 0), new ItemStack(Items.COAL, 1, 1), new ItemStack(AsteroidBlocks.blockBasic, 1, 2), new ItemStack(Items.COAL, 1, 1));
     	//Splintered ice into Ice
     	CompressorRecipes.addShapelessRecipe(new ItemStack(Blocks.ICE), new ItemStack(AsteroidBlocks.blockDenseIce), new ItemStack(AsteroidBlocks.blockDenseIce));
-    	//Slimeball
-    	RecipeUtil.addRecipe(new ItemStack(Items.SLIME_BALL), new Object [] { "XFX", "FEF", "XFX", 'X', new ItemStack(Items.DYE, 1, 2), 'E', new ItemStack(GCItems.cheeseCurd), 'F', new ItemStack(Items.SUGAR) } );
     	
-        CompressorRecipes.addShapelessRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 6), titaniumIngot, titaniumIngot);
-        CompressorRecipes.addShapelessRecipe(platingTier3, new ItemStack(MarsItems.marsItemBasic, 1, 3), new ItemStack(MarsItems.marsItemBasic, 1, 5));
+    	CompressorRecipes.addShapelessRecipe(new ItemStack(AsteroidsItems.basicItem, 1, 6), titaniumIngot, titaniumIngot);
+    	CompressorRecipes.addShapelessRecipe(platingTier3, new ItemStack(MarsItems.marsItemBasic, 1, 3), new ItemStack(MarsItems.marsItemBasic, 1, 5));
+    	
+        ItemStack[] chests = new ItemStack[OreDictionary.getOres("chestWood").size()];
+        for (int i = 0; i < chests.length; i++) {
+            chests[i] = OreDictionary.getOres("chestWood").get(i);
+        }
+        
+        HashMap<Integer, Ingredient> input = new HashMap<>();
+        ItemStack plateTier3 = new ItemStack(AsteroidsItems.basicItem, 1, 5);
+        ItemStack rocketFinsTier2 = new ItemStack(AsteroidsItems.basicItem, 1, 2);
+        input.put(1, Ingredient.fromStacks(new ItemStack(AsteroidsItems.heavyNoseCone)));
+        input.put(2, Ingredient.fromStacks(plateTier3));
+        input.put(3, Ingredient.fromStacks(plateTier3));
+        input.put(4, Ingredient.fromStacks(plateTier3));
+        input.put(5, Ingredient.fromStacks(plateTier3));
+        input.put(6, Ingredient.fromStacks(plateTier3));
+        input.put(7, Ingredient.fromStacks(plateTier3));
+        input.put(8, Ingredient.fromStacks(plateTier3));
+        input.put(9, Ingredient.fromStacks(plateTier3));
+        input.put(10, Ingredient.fromStacks(plateTier3));
+        input.put(11, Ingredient.fromStacks(plateTier3));
+        input.put(12, Ingredient.fromStacks(new ItemStack(GCItems.rocketEngine, 1, 1)));
+        input.put(13, Ingredient.fromStacks(rocketFinsTier2));
+        input.put(14, Ingredient.fromStacks(rocketFinsTier2));
+        input.put(15, Ingredient.fromStacks(new ItemStack(AsteroidsItems.basicItem, 1, 1)));
+        input.put(16, Ingredient.fromStacks(new ItemStack(GCItems.rocketEngine, 1, 1)));
+        input.put(17, Ingredient.fromStacks(rocketFinsTier2));
+        input.put(18, Ingredient.fromStacks(rocketFinsTier2));
+        input.put(19, Ingredient.fromStacks(ItemStack.EMPTY));
+        input.put(20, Ingredient.fromStacks(ItemStack.EMPTY));
+        input.put(21, Ingredient.fromStacks(ItemStack.EMPTY));
+        GalacticraftRegistry.addT3RocketRecipe(new NasaWorkbenchRecipe(new ItemStack(AsteroidsItems.tier3Rocket, 1, 0), input));
+
+        HashMap<Integer, Ingredient> input2 = new HashMap<>(input);
+        input2.put(19, Ingredient.fromStacks(chests));
+        GalacticraftRegistry.addT3RocketRecipe(new NasaWorkbenchRecipe(new ItemStack(AsteroidsItems.tier3Rocket, 1, 1), input2));
+
+        input2 = new HashMap<>(input);
+        input2.put(20, Ingredient.fromStacks(chests));
+        GalacticraftRegistry.addT3RocketRecipe(new NasaWorkbenchRecipe(new ItemStack(AsteroidsItems.tier3Rocket, 1, 1), input2));
+
+        input2 = new HashMap<>(input);
+        input2.put(21, Ingredient.fromStacks(chests));
+        GalacticraftRegistry.addT3RocketRecipe(new NasaWorkbenchRecipe(new ItemStack(AsteroidsItems.tier3Rocket, 1, 1), input2));
+
+        input2 = new HashMap<>(input);
+        input2.put(19, Ingredient.fromStacks(chests));
+        input2.put(20, Ingredient.fromStacks(chests));
+        GalacticraftRegistry.addT3RocketRecipe(new NasaWorkbenchRecipe(new ItemStack(AsteroidsItems.tier3Rocket, 1, 2), input2));
+
+        input2 = new HashMap<>(input);
+        input2.put(19, Ingredient.fromStacks(chests));
+        input2.put(21, Ingredient.fromStacks(chests));
+        GalacticraftRegistry.addT3RocketRecipe(new NasaWorkbenchRecipe(new ItemStack(AsteroidsItems.tier3Rocket, 1, 2), input2));
+
+        input2 = new HashMap<>(input);
+        input2.put(20, Ingredient.fromStacks(chests));
+        input2.put(21, Ingredient.fromStacks(chests));
+        GalacticraftRegistry.addT3RocketRecipe(new NasaWorkbenchRecipe(new ItemStack(AsteroidsItems.tier3Rocket, 1, 2), input2));
+
+        input2 = new HashMap<>(input);
+        input2.put(19, Ingredient.fromStacks(chests));
+        input2.put(20, Ingredient.fromStacks(chests));
+        input2.put(21, Ingredient.fromStacks(chests));
+        GalacticraftRegistry.addT3RocketRecipe(new NasaWorkbenchRecipe(new ItemStack(AsteroidsItems.tier3Rocket, 1, 3), input2));
+
+        input = new HashMap<>();
+        input.put(1, Ingredient.fromStacks(new ItemStack(GCItems.heavyPlatingTier1)));
+        input.put(2, Ingredient.fromStacks(new ItemStack(AsteroidsItems.orionDrive)));
+        input.put(3, Ingredient.fromStacks(new ItemStack(GCItems.heavyPlatingTier1)));
+        input.put(4, Ingredient.fromStacks(new ItemStack(AsteroidsItems.orionDrive)));
+        input.put(5, Ingredient.fromStacks(new ItemStack(GCItems.heavyPlatingTier1)));
+        input.put(6, Ingredient.fromStacks(new ItemStack(GCItems.basicItem, 1, 14)));
+        input.put(7, Ingredient.fromStacks(chests));
+        input.put(8, Ingredient.fromStacks(chests));
+        input.put(9, Ingredient.fromStacks(new ItemStack(AsteroidsItems.orionDrive)));
+        input.put(10, Ingredient.fromStacks(new ItemStack(AsteroidsItems.orionDrive)));
+        input.put(11, Ingredient.fromStacks(new ItemStack(GCItems.heavyPlatingTier1)));
+        input.put(12, Ingredient.fromStacks(new ItemStack(AsteroidsItems.orionDrive)));
+        input.put(13, Ingredient.fromStacks(new ItemStack(AsteroidsItems.basicItem, 1, 8)));
+        input.put(14,Ingredient.fromStacks( new ItemStack(GCItems.flagPole)));
+        GalacticraftRegistry.addAstroMinerRecipe(new NasaWorkbenchRecipe(new ItemStack(AsteroidsItems.astroMiner, 1, 0), input));
 
         //All this is for NEI's benefit
-        List<ItemStack> list1 = new ArrayList<>();
-        List<ItemStack> list2 = new ArrayList<>();
-        List<ItemStack> list3 = new ArrayList<>();
-        list1.add(new ItemStack(AsteroidsItems.canisterLOX, 1, 751));
-        list2.add(new ItemStack(AsteroidsItems.canisterLOX, 1, 834));
-        list3.add(new ItemStack(AsteroidsItems.canisterLOX, 1, 918));
-        list1.add(new ItemStack(GCItems.oxTankHeavy, 1, 2700));
-        list2.add(new ItemStack(GCItems.oxTankMedium, 1, 1800));
-        list3.add(new ItemStack(GCItems.oxTankLight, 1, 900));
+        NonNullList<Ingredient> list1 = NonNullList.create();
+        NonNullList<Ingredient> list2 = NonNullList.create();
+        NonNullList<Ingredient> list3 = NonNullList.create();
+        list1.add(Ingredient.fromStacks(new ItemStack(AsteroidsItems.canisterLOX, 1, 751)));
+        list2.add(Ingredient.fromStacks(new ItemStack(AsteroidsItems.canisterLOX, 1, 834)));
+        list3.add(Ingredient.fromStacks(new ItemStack(AsteroidsItems.canisterLOX, 1, 918)));
+        list1.add(Ingredient.fromStacks(new ItemStack(GCItems.oxTankHeavy, 1, 2700)));
+        list2.add(Ingredient.fromStacks(new ItemStack(GCItems.oxTankMedium, 1, 1800)));
+        list3.add(Ingredient.fromStacks(new ItemStack(GCItems.oxTankLight, 1, 900)));
         RecipeUtil.addCustomRecipe(new CanisterRecipes(new ItemStack(GCItems.oxTankHeavy, 1, 0), list1));
         RecipeUtil.addCustomRecipe(new CanisterRecipes(new ItemStack(GCItems.oxTankMedium, 1, 0), list2));
         RecipeUtil.addCustomRecipe(new CanisterRecipes(new ItemStack(GCItems.oxTankLight, 1, 0), list3));
-        
+    }
+    
+    public static void loadCompatibilityRecipes()
+    {
+        ItemStack titaniumIngot = new ItemStack(AsteroidsItems.basicItem, 1, 0);
         if (CompatibilityManager.isIc2Loaded())
         {
             CompatModuleIC2Asteroids.addIC2Recipes(titaniumIngot, new ItemStack(AsteroidsItems.basicItem, 1, 9));

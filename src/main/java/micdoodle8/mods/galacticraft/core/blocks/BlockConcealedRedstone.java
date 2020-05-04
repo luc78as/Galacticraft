@@ -78,7 +78,7 @@ public class BlockConcealedRedstone extends Block implements ISortableBlock
 
         for (BlockPos blockpos : list)
         {
-            worldIn.notifyNeighborsOfStateChange(blockpos, this);
+            worldIn.notifyNeighborsOfStateChange(blockpos, this, false);
         }
 
         return state;
@@ -169,11 +169,11 @@ public class BlockConcealedRedstone extends Block implements ISortableBlock
         Block b = worldIn.getBlockState(pos).getBlock(); 
         if (b == this || b == Blocks.REDSTONE_WIRE)
         {
-            worldIn.notifyNeighborsOfStateChange(pos, this);
+            worldIn.notifyNeighborsOfStateChange(pos, this, false);
 
             for (EnumFacing enumfacing : EnumFacing.VALUES)
             {
-                worldIn.notifyNeighborsOfStateChange(pos.offset(enumfacing), this);
+                worldIn.notifyNeighborsOfStateChange(pos.offset(enumfacing), this, false);
             }
         }
     }
@@ -187,7 +187,7 @@ public class BlockConcealedRedstone extends Block implements ISortableBlock
 
             for (EnumFacing enumfacing : EnumFacing.Plane.VERTICAL)
             {
-                worldIn.notifyNeighborsOfStateChange(pos.offset(enumfacing), this);
+                worldIn.notifyNeighborsOfStateChange(pos.offset(enumfacing), this, false);
             }
 
             for (EnumFacing enumfacing1 : EnumFacing.Plane.HORIZONTAL)
@@ -226,7 +226,7 @@ public class BlockConcealedRedstone extends Block implements ISortableBlock
         {
             for (EnumFacing enumfacing : EnumFacing.VALUES)
             {
-                worldIn.notifyNeighborsOfStateChange(pos.offset(enumfacing), this);
+                worldIn.notifyNeighborsOfStateChange(pos.offset(enumfacing), this, false);
             }
 
             this.updateSurroundingRedstone(worldIn, pos, state);
@@ -254,7 +254,7 @@ public class BlockConcealedRedstone extends Block implements ISortableBlock
     }
 
     @Override
-    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn)
+    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
     {
         if (!worldIn.isRemote)
         {

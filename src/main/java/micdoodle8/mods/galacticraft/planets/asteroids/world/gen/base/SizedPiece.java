@@ -3,6 +3,7 @@ package micdoodle8.mods.galacticraft.planets.asteroids.world.gen.base;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.gen.structure.StructureBoundingBox;
+import net.minecraft.world.gen.structure.template.TemplateManager;
 
 import java.util.Random;
 
@@ -48,9 +49,9 @@ public abstract class SizedPiece extends Piece
     }
 
     @Override
-    protected void readStructureFromNBT(NBTTagCompound tagCompound)
+    protected void readStructureFromNBT(NBTTagCompound tagCompound, TemplateManager manager)
     {
-        super.readStructureFromNBT(tagCompound);
+        super.readStructureFromNBT(tagCompound, manager);
 
         this.sizeX = tagCompound.getInteger("sX");
         this.sizeY = tagCompound.getInteger("sY");

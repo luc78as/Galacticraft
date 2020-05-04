@@ -24,6 +24,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.WorldServer;
 
@@ -37,9 +38,9 @@ public class CommandGCHouston extends CommandBase
     }
     
     @Override
-    public String getCommandUsage(ICommandSender var1)
+    public String getUsage(ICommandSender var1)
     {
-        return "/" + this.getCommandName() + " [<player>]";
+        return "/" + this.getName() + " [<player>]";
     }
 
     @Override
@@ -55,17 +56,17 @@ public class CommandGCHouston extends CommandBase
     }
 
     @Override
-    public String getCommandName()
+    public String getName()
     {
         return "gchouston";
     }
 
     @Override
-    public List<String> getTabCompletionOptions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos pos)
+    public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos pos)
     {
         if (args.length == 1 && this.isOp(server, sender))
         {
-            return getListOfStringsMatchingLastWord(args, server.getAllUsernames());
+            return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
         }
         return null;
     }
@@ -90,7 +91,7 @@ public class CommandGCHouston extends CommandBase
         }
         return false;
     }
-    
+
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException
     {
@@ -106,7 +107,7 @@ public class CommandGCHouston extends CommandBase
                     playerBase = PlayerUtil.getPlayerBaseServerFromPlayerUsername(sender.getName(), true);
                     if (!playerBase.capabilities.isCreativeMode)
                     {
-                        if (ConfigManagerCore.challengeMode || !(playerBase.worldObj.provider instanceof IGalacticraftWorldProvider) )
+                        if (ConfigManagerCore.challengeMode || !(playerBase.world.provider instanceof IGalacticraftWorldProvider) )
                         {
                             CommandBase.notifyCommandListener(sender, this, "commands.gchouston.fail");
                             return;
@@ -140,10 +141,10 @@ public class CommandGCHouston extends CommandBase
                 if (playerBase != null)
                 {
                     int dimID = ConfigManagerCore.idDimensionOverworld;
-                    WorldServer worldserver = server.worldServerForDimension(dimID);
+                    WorldServer worldserver = server.getWorld(dimID);
                     if (worldserver == null)
                     {
-                        worldserver = server.worldServerForDimension(0);
+                        worldserver = server.getWorld(0);
                         if (worldserver == null)
                         {
                             throw new Exception("/gchouston could not find Overworld.");
@@ -161,7 +162,7 @@ public class CommandGCHouston extends CommandBase
                         spawnPoint = worldserver.getTopSolidOrLiquidBlock(worldserver.getSpawnPoint());
                     }
                     GCPlayerStats stats = GCPlayerStats.get(playerBase);
-                    stats.setRocketStacks(new ItemStack[0]);
+                    stats.setRocketStacks(NonNullList.withSize(0, ItemStack.EMPTY));
                     stats.setRocketType(IRocketType.EnumRocketType.DEFAULT.ordinal());
                     stats.setRocketItem(null);
                     stats.setFuelLevel(0);
@@ -195,7 +196,7 @@ public class CommandGCHouston extends CommandBase
         }
         else
         {
-            throw new WrongUsageException(GCCoreUtil.translateWithFormat("commands.dimensiontp.too_many", this.getCommandUsage(sender)), new Object[0]);
+            throw new WrongUsageException(GCCoreUtil.translateWithFormat("commands.dimensiontp.too_many", this.getUsage(sender)), new Object[0]);
         }
     }
 }

@@ -18,30 +18,30 @@ public class TileEntityOxygenDetector extends TileEntity implements ITickable
     @Override
     public void update()
     {
-        if (!this.worldObj.isRemote && ++this.ticks == 50) 
+        if (!this.world.isRemote && ++this.ticks == 50) 
         {
             this.ticks = 0;
             if (this.getBlockType() instanceof BlockOxygenDetector)
             {
                 boolean oxygenFound = false;
-                if (this.worldObj.provider instanceof IGalacticraftWorldProvider && !((IGalacticraftWorldProvider)this.worldObj.provider).hasBreathableAtmosphere())
+                if (this.world.provider instanceof IGalacticraftWorldProvider && !((IGalacticraftWorldProvider)this.world.provider).hasBreathableAtmosphere())
                 {
-                    oxygenFound = OxygenUtil.isAABBInBreathableAirBlock(this.worldObj, this.oxygenSearch, false);
+                    oxygenFound = OxygenUtil.isAABBInBreathableAirBlock(this.world, this.oxygenSearch, false);
                 }
                 else
                 {
                     for (EnumFacing side : EnumFacing.VALUES)
                     {
                         BlockPos offset = this.pos.offset(side, 1);
-                        IBlockState bs = this.worldObj.getBlockState(offset);
-                        if (!bs.getBlock().isSideSolid(bs, worldObj, offset, side.getOpposite()))
+                        IBlockState bs = this.world.getBlockState(offset);
+                        if (!bs.getBlock().isSideSolid(bs, world, offset, side.getOpposite()))
                         {
                             oxygenFound = true;
                             break;
                         }
                     }
                 }
-                ((BlockOxygenDetector) this.blockType).updateOxygenState(this.worldObj, this.getPos(), oxygenFound);
+                ((BlockOxygenDetector) this.blockType).updateOxygenState(this.world, this.getPos(), oxygenFound);
             }
         }
     }

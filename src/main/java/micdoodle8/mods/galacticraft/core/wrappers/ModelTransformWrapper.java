@@ -5,76 +5,70 @@ import net.minecraft.client.renderer.block.model.*;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms.TransformType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.EnumFacing;
-import net.minecraftforge.client.model.IPerspectiveAwareModel;
 import net.minecraftforge.common.model.TRSRTransformation;
 import org.apache.commons.lang3.tuple.Pair;
 
+import javax.annotation.Nullable;
 import javax.vecmath.Matrix4f;
 import java.util.List;
 
-public abstract class ModelTransformWrapper implements IPerspectiveAwareModel
+abstract public class ModelTransformWrapper implements IBakedModel
 {
-    private final IBakedModel iBakedModel;
+    private final IBakedModel parent;
 
-    public ModelTransformWrapper(IBakedModel i_modelToWrap)
-    {
-        this.iBakedModel = i_modelToWrap;
-    }
+	public ModelTransformWrapper(IBakedModel parent)
+	{
+	    this.parent = parent;
+	}
 
-    protected abstract Matrix4f getTransformForPerspective(TransformType cameraTransformType);
-
-    @Override
-    public Pair<? extends IBakedModel, Matrix4f> handlePerspective(TransformType cameraTransformType)
-    {
-        Matrix4f matrix4f = getTransformForPerspective(cameraTransformType);
-
-        if (matrix4f == null)
-        {
-            return Pair.of(this, TRSRTransformation.blockCornerToCenter(new TRSRTransformation(ItemTransformVec3f.DEFAULT)).getMatrix());
-        }
-
-        return Pair.of(this, matrix4f);
-    }
-
-    @Override
-    public List<BakedQuad> getQuads(IBlockState state, EnumFacing side, long rand)
-    {
-        return iBakedModel.getQuads(state, side, rand);
-    }
-
-    @Override
-    public ItemOverrideList getOverrides()
-    {
-        return iBakedModel.getOverrides();
-    }
-
-    @Override
     public boolean isAmbientOcclusion()
     {
-        return iBakedModel.isAmbientOcclusion();
+        return parent.isAmbientOcclusion();
     }
 
-    @Override
     public boolean isGui3d()
     {
-        return iBakedModel.isGui3d();
+        return parent.isGui3d();
     }
 
-    @Override
     public boolean isBuiltInRenderer()
     {
-        return iBakedModel.isBuiltInRenderer();
+        return parent.isBuiltInRenderer();
     }
 
-    @Override
     public TextureAtlasSprite getParticleTexture()
     {
-        return iBakedModel.getParticleTexture();
+        return parent.getParticleTexture();
     }
 
-    @Override
+    @SuppressWarnings("deprecation")
     public ItemCameraTransforms getItemCameraTransforms()
     {
-        return ItemCameraTransforms.DEFAULT;
+        return parent.getItemCameraTransforms();
     }
+
+    public List<BakedQuad> getQuads(@Nullable IBlockState state, @Nullable EnumFacing side, long rand)
+    {
+        return parent.getQuads(state, side, rand);
+    }
+
+    public ItemOverrideList getOverrides()
+    {
+        return parent.getOverrides();
+    }
+
+	@Override
+	public Pair<? extends IBakedModel, Matrix4f> handlePerspective(ItemCameraTransforms.TransformType cameraTransformType)
+	{
+		Matrix4f matrix4f = getTransformForPerspective(cameraTransformType);
+
+		if (matrix4f == null)
+		{
+			return Pair.of(this, TRSRTransformation.blockCornerToCenter(TRSRTransformation.identity()).getMatrix());
+		}
+
+		return Pair.of(this, matrix4f);
+	}
+
+    abstract protected Matrix4f getTransformForPerspective(TransformType cameraTransformType);
 }

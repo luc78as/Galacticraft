@@ -55,8 +55,9 @@ public class ItemEmergencyKit extends ItemDesc implements ISortableItem
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(ItemStack itemStack, World worldIn, EntityPlayer player, EnumHand hand)
+    public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer player, EnumHand hand)
     {
+        ItemStack itemStack = player.getHeldItem(hand);
         if (player instanceof EntityPlayerMP)
         {
             GCPlayerStats stats = GCPlayerStats.get(player);
@@ -64,17 +65,17 @@ public class ItemEmergencyKit extends ItemDesc implements ISortableItem
             for (int i = 0; i < SIZE; i++)
             {
                 ItemStack newGear = getContents(i);
-                if (newGear.getItem() instanceof ISortableItem && ((ISortableItem)newGear.getItem()).getCategory(newGear.getItemDamage()) == EnumSortCategoryItem.GEAR)
+                if (newGear.getItem() instanceof IClickableItem)
                 {
-                    newGear = newGear.getItem().onItemRightClick(newGear, worldIn, player, hand).getResult();
+                    newGear = ((IClickableItem)newGear.getItem()).onItemRightClick(newGear, worldIn, player);
                 }
-                if (newGear.stackSize >= 1)
+                if (newGear.getCount() >= 1)
                 {
                     ItemHandlerHelper.giveItemToPlayer(player, newGear, 0);
                 }
             }
 
-            itemStack.stackSize = 0;
+            itemStack.setCount(0);
             return new ActionResult<>(EnumActionResult.SUCCESS, itemStack);
         }
         return new ActionResult<>(EnumActionResult.PASS, itemStack);

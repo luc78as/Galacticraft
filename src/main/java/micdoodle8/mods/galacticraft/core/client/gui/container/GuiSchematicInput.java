@@ -60,7 +60,7 @@ public class GuiSchematicInput extends GuiPositionedContainer implements ISchema
                 SchematicRegistry.flipToNextPage(this, this.pageIndex);
                 break;
             case 2:
-                GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(EnumSimplePacket.S_UNLOCK_NEW_SCHEMATIC, GCCoreUtil.getDimensionID(mc.theWorld), new Object[] {}));
+                GalacticraftCore.packetPipeline.sendToServer(new PacketSimple(EnumSimplePacket.S_UNLOCK_NEW_SCHEMATIC, GCCoreUtil.getDimensionID(mc.world), new Object[] {}));
                 break;
             }
         }
@@ -69,8 +69,8 @@ public class GuiSchematicInput extends GuiPositionedContainer implements ISchema
     @Override
     protected void drawGuiContainerForegroundLayer(int par1, int par2)
     {
-        this.fontRendererObj.drawString(GCCoreUtil.translate("gui.message.addnewsch.name"), 7, -22, 4210752);
-        this.fontRendererObj.drawString(GCCoreUtil.translate("container.inventory"), 8, 56, 4210752);
+        this.fontRenderer.drawString(GCCoreUtil.translate("gui.message.addnewsch.name"), 7, -22, 4210752);
+        this.fontRenderer.drawString(GCCoreUtil.translate("container.inventory"), 8, 56, 4210752);
     }
 
     @Override

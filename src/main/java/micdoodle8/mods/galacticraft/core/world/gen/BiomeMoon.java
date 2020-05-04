@@ -14,7 +14,7 @@ public class BiomeMoon extends BiomeGenBaseGC
 
     BiomeMoon(BiomeProperties properties)
     {
-        super(properties);
+        super(properties, true);
     }
     
     @Override
@@ -28,7 +28,7 @@ public class BiomeMoon extends BiomeGenBaseGC
     {
         return 0.1F;
     }
-    
+
     @Override
     public void genTerrainBlocks(World worldIn, Random rand, ChunkPrimer chunkPrimerIn, int x, int z, double noiseVal)
     {

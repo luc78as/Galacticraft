@@ -1,13 +1,16 @@
 package micdoodle8.mods.galacticraft.planets.venus.tile;
 
 import micdoodle8.mods.galacticraft.core.inventory.IInventoryDefaults;
+import micdoodle8.mods.galacticraft.core.tile.TileEntityInventory;
 import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -17,18 +20,23 @@ import net.minecraft.world.storage.loot.LootTable;
 
 import java.util.Random;
 
-public class TileEntityCrashedProbe extends TileEntity implements IInventoryDefaults
+public class TileEntityCrashedProbe extends TileEntityInventory
 {
-    private ItemStack[] containingItems = new ItemStack[6];
     private boolean hasCoreToDrop;
     protected ResourceLocation lootTable;
     protected long lootTableSeed;
+
+    public TileEntityCrashedProbe()
+    {
+        super("container.crashed_probe.name");
+        inventory = NonNullList.withSize(6, ItemStack.EMPTY);
+    }
 
     protected void fillWithLoot(EntityPlayer player)
     {
         if (this.lootTable != null)
         {
-            LootTable loottable = this.worldObj.getLootTableManager().getLootTableFromLocation(this.lootTable);
+            LootTable loottable = this.world.getLootTableManager().getLootTableFromLocation(this.lootTable);
             this.lootTable = null;
             Random random;
 
@@ -41,7 +49,7 @@ public class TileEntityCrashedProbe extends TileEntity implements IInventoryDefa
                 random = new Random(this.lootTableSeed);
             }
 
-            LootContext.Builder lootcontext$builder = new LootContext.Builder((WorldServer)this.worldObj);
+            LootContext.Builder lootcontext$builder = new LootContext.Builder((WorldServer)this.world);
 
             if (player != null)
             {
@@ -50,6 +58,12 @@ public class TileEntityCrashedProbe extends TileEntity implements IInventoryDefa
 
             loottable.fillInventory(this, random, lootcontext$builder.build());
         }
+    }
+
+    @Override
+    protected boolean handleInventory()
+    {
+        return false;
     }
 
     @Override
@@ -67,18 +81,8 @@ public class TileEntityCrashedProbe extends TileEntity implements IInventoryDefa
 
         if (!this.checkLootAndRead(nbt))
         {
-            NBTTagList nbttaglist = nbt.getTagList("Items", 10);
-
-            for (int i = 0; i < nbttaglist.tagCount(); ++i)
-            {
-                NBTTagCompound nbttagcompound = nbttaglist.getCompoundTagAt(i);
-                int j = nbttagcompound.getByte("Slot") & 255;
-
-                if (j >= 0 && j < this.containingItems.length)
-                {
-                    this.containingItems[j] = ItemStack.loadItemStackFromNBT(nbttagcompound);
-                }
-            }
+            this.inventory = NonNullList.withSize(this.getSizeInventory(), ItemStack.EMPTY);
+            ItemStackHelper.loadAllItems(nbt, this.getInventory());
         }
     }
 
@@ -90,131 +94,49 @@ public class TileEntityCrashedProbe extends TileEntity implements IInventoryDefa
 
         if (!this.checkLootAndWrite(nbt))
         {
-            NBTTagList nbttaglist = new NBTTagList();
-
-            for (int i = 0; i < this.containingItems.length; ++i)
-            {
-                if (this.containingItems[i] != null)
-                {
-                    NBTTagCompound nbttagcompound = new NBTTagCompound();
-                    nbttagcompound.setByte("Slot", (byte) i);
-                    this.containingItems[i].writeToNBT(nbttagcompound);
-                    nbttaglist.appendTag(nbttagcompound);
-                }
-            }
-
-            nbt.setTag("Items", nbttaglist);
+            ItemStackHelper.saveAllItems(nbt, this.getInventory());
         }
         return nbt;
     }
 
     @Override
-    public boolean hasCustomName()
+    public int[] getSlotsForFace(EnumFacing side)
     {
-        return true;
-    }
-
-    @Override
-    public String getName()
-    {
-        return GCCoreUtil.translate("container.crashed_probe.name");
-    }
-
-    @Override
-    public int getSizeInventory()
-    {
-        return this.containingItems.length;
+        return new int[0];
     }
 
     @Override
     public ItemStack getStackInSlot(int slot)
     {
-        this.fillWithLoot(null);
-        return this.containingItems[slot];
+    	this.fillWithLoot(null);
+    	return super.getStackInSlot(slot);
     }
 
     @Override
-    public ItemStack decrStackSize(int slot, int amount)
+    public ItemStack decrStackSize(int index, int count)
     {
         this.fillWithLoot(null);
-        if (this.containingItems[slot] != null)
-        {
-            ItemStack var3;
-
-            if (this.containingItems[slot].stackSize <= amount)
-            {
-                var3 = this.containingItems[slot];
-                this.containingItems[slot] = null;
-                return var3;
-            }
-            else
-            {
-                var3 = this.containingItems[slot].splitStack(amount);
-
-                if (this.containingItems[slot].stackSize == 0)
-                {
-                    this.containingItems[slot] = null;
-                }
-
-                return var3;
-            }
-        }
-        else
-        {
-            return null;
-        }
+        return super.decrStackSize(index, count);
     }
 
     @Override
-    public ItemStack removeStackFromSlot(int slot)
+    public ItemStack removeStackFromSlot(int index)
     {
         this.fillWithLoot(null);
-        if (this.containingItems[slot] != null)
-        {
-            final ItemStack var2 = this.containingItems[slot];
-            this.containingItems[slot] = null;
-            return var2;
-        }
-        else
-        {
-            return null;
-        }
+        return super.removeStackFromSlot(index);
     }
 
     @Override
-    public void setInventorySlotContents(int slot, ItemStack itemStack)
+    public boolean isEmpty()
     {
         this.fillWithLoot(null);
-        this.containingItems[slot] = itemStack;
-
-        if (itemStack != null && itemStack.stackSize > this.getInventoryStackLimit())
-        {
-            itemStack.stackSize = this.getInventoryStackLimit();
-        }
-    }
-
-    @Override
-    public int getInventoryStackLimit()
-    {
-        return 64;
+        return super.isEmpty();
     }
 
     @Override
     public void clear()
     {
         this.fillWithLoot(null);
-    }
-
-    @Override
-    public boolean isUseableByPlayer(EntityPlayer player)
-    {
-        return this.worldObj.getTileEntity(this.getPos()) == this && player.getDistanceSq(this.getPos().getX() + 0.5D, this.getPos().getY() + 0.5D, this.getPos().getZ() + 0.5D) <= 64.0D;
-    }
-
-    @Override
-    public boolean isItemValidForSlot(int slotID, ItemStack itemstack)
-    {
-        return true;
     }
 
     @Override

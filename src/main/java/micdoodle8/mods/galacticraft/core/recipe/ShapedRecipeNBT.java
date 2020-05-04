@@ -9,10 +9,13 @@ import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.util.NonNullList;
 import net.minecraft.world.World;
+import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.oredict.OreDictionary;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 
-public class ShapedRecipeNBT implements IRecipe
+public class ShapedRecipeNBT extends IForgeRegistryEntry.Impl<IRecipe> implements IRecipe
 {
     public int recipeWidth;
     public int recipeHeight;
@@ -93,17 +96,9 @@ public class ShapedRecipeNBT implements IRecipe
     }
 
     @Override
-    public ItemStack[] getRemainingItems(InventoryCrafting inv)
+    public NonNullList<ItemStack> getRemainingItems(InventoryCrafting inv)
     {
-        ItemStack[] aitemstack = new ItemStack[inv.getSizeInventory()];
-
-        for (int i = 0; i < aitemstack.length; ++i)
-        {
-            ItemStack itemstack = inv.getStackInSlot(i);
-            aitemstack[i] = net.minecraftforge.common.ForgeHooks.getContainerItem(itemstack);
-        }
-
-        return aitemstack;
+        return ForgeHooks.defaultRecipeGetRemainingItems(inv);
     }
 
     @Override
@@ -152,9 +147,9 @@ public class ShapedRecipeNBT implements IRecipe
 
                 ItemStack itemstack1 = inv.getStackInRowAndColumn(i, j);
 
-                if (itemstack1 != null || target != null)
+                if (!itemstack1.isEmpty() || target != null)
                 {
-                    if (itemstack1 == null || target == null)
+                    if (itemstack1.isEmpty() || target == null)
                     {
                         return false;
                     }
@@ -188,8 +183,8 @@ public class ShapedRecipeNBT implements IRecipe
     }
 
     @Override
-    public int getRecipeSize()
+    public boolean canFit(int width, int height)
     {
-        return this.recipeWidth * this.recipeHeight;
+        return width >= this.recipeWidth && height >= this.recipeHeight;
     }
 }

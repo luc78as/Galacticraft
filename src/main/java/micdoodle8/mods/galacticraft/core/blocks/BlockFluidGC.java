@@ -11,7 +11,6 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.SoundEvents;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.SoundCategory;
@@ -56,14 +55,14 @@ public class BlockFluidGC extends BlockFluidClassic
     }
 
     @Override
-    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, ItemStack heldItem, EnumFacing side, float hitX, float hitY, float hitZ)
+    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing side, float hitX, float hitY, float hitZ)
     {
         if (worldIn.isRemote && this.fluidName.startsWith("oil") && playerIn instanceof EntityPlayerSP)
         {
             ClientProxyCore.playerClientHandler.onBuild(7, (EntityPlayerSP) playerIn);
         }
 
-        return super.onBlockActivated(worldIn, pos, state, playerIn, hand, heldItem, side, hitX, hitY, hitZ);
+        return super.onBlockActivated(worldIn, pos, state, playerIn, hand, side, hitX, hitY, hitZ);
     }
 
     @Override
@@ -201,7 +200,7 @@ public class BlockFluidGC extends BlockFluidClassic
             return -1000.0;
         }
         Vec3d vec = ((BlockFluidBase)state.getBlock()).getFlowVector(world, pos);
-        return vec.xCoord == 0.0D && vec.zCoord == 0.0D ? -1000.0D : Math.atan2(vec.zCoord, vec.xCoord) - Math.PI / 2D;
+        return vec.x == 0.0D && vec.z == 0.0D ? -1000.0D : Math.atan2(vec.z, vec.x) - Math.PI / 2D;
     }
     
     private boolean isFluid(IBlockState state)
@@ -209,7 +208,8 @@ public class BlockFluidGC extends BlockFluidClassic
         return state.getMaterial().isLiquid() || state.getBlock() instanceof IFluidBlock;
     }
 
-    private float getFluidHeightForRender(IBlockAccess world, BlockPos pos, IBlockState up)
+    @Override
+    public float getFluidHeightForRender(IBlockAccess world, BlockPos pos, IBlockState up)
     {
         IBlockState here = world.getBlockState(pos);
 

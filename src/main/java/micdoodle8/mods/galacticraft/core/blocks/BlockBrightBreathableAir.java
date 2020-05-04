@@ -10,7 +10,6 @@ import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -29,12 +28,6 @@ public class BlockBrightBreathableAir extends BlockAir
         this.setHardness(0.0F);
         this.setUnlocalizedName(assetName);
         this.setLightLevel(1.0F);
-    }
-
-    @Override
-    public boolean canReplace(World worldIn, BlockPos pos, EnumFacing side, ItemStack stack)
-    {
-        return true;
     }
 
     @Override
@@ -70,7 +63,7 @@ public class BlockBrightBreathableAir extends BlockAir
     }
 
     @Override
-    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn)
+    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
     {
         if (Blocks.AIR == blockIn)
         //Do no check if replacing breatheableAir with a solid block, although that could be dividing a sealed space

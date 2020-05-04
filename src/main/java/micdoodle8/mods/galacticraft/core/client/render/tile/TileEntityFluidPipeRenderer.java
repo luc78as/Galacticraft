@@ -59,7 +59,7 @@ public class TileEntityFluidPipeRenderer extends TileEntitySpecialRenderer<TileE
     }
 
     @Override
-    public void renderTileEntityAt(TileEntityFluidPipe pipe, double x, double y, double z, float partialTicks, int destroyStage)
+    public void render(TileEntityFluidPipe pipe, double x, double y, double z, float partialTicks, int destroyStage, float alpha)
     {
         updateModels();
 
@@ -337,7 +337,7 @@ public class TileEntityFluidPipeRenderer extends TileEntitySpecialRenderer<TileE
         final double vMax = sprite.getMaxV();
 
         Tessellator tess = Tessellator.getInstance();
-        VertexBuffer worldRenderer = tess.getBuffer();
+        BufferBuilder worldRenderer = tess.getBuffer();
 
         double uDiff = (uMax - uMin);
         double vDiff = (vMax - vMin);

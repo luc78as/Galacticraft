@@ -11,7 +11,6 @@ import micdoodle8.mods.galacticraft.core.client.render.entities.RenderPlayerGC;
 import micdoodle8.mods.galacticraft.core.wrappers.PlayerGearData;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.model.ModelBiped;
-import net.minecraft.client.model.ModelPlayer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -32,7 +31,7 @@ public class ModelBipedGC
         final ItemStack currentItemStack = player.inventory.getCurrentItem();
         final float floatPI = 3.1415927F;
 
-        if (!par7Entity.onGround && par7Entity.worldObj.provider instanceof IGalacticraftWorldProvider && par7Entity.getRidingEntity() == null && !(currentItemStack != null && currentItemStack.getItem() instanceof IHoldableItem))
+        if (!par7Entity.onGround && par7Entity.world.provider instanceof IGalacticraftWorldProvider && par7Entity.getRidingEntity() == null && !(currentItemStack != null && currentItemStack.getItem() instanceof IHoldableItem))
         {
             float speedModifier = 0.1162F * 2;
 
@@ -118,13 +117,9 @@ public class ModelBipedGC
             }
         }
 
-        final List<?> l = player.worldObj.getEntitiesWithinAABBExcludingEntity(player, new AxisAlignedBB(player.posX - 20, 0, player.posZ - 20, player.posX + 20, 200, player.posZ + 20));
-
-        for (int i = 0; i < l.size(); i++)
+        for (Entity e : player.world.loadedEntityList)
         {
-            final Entity e = (Entity) l.get(i);
-
-            if (e instanceof EntityTieredRocket)
+            if (e instanceof EntityTieredRocket && e.getDistanceSq(player) < 200)
             {
                 final EntityTieredRocket ship = (EntityTieredRocket) e;
 
@@ -156,9 +151,6 @@ public class ModelBipedGC
             }
         }
 
-        if (biped instanceof ModelPlayer)
-        {
-            ModelBiped.copyModelAngles(biped.bipedHead, ((ModelPlayer) biped).bipedHeadwear);
-        }
+        ModelBiped.copyModelAngles(biped.bipedHead, biped.bipedHeadwear);
     }
 }

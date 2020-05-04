@@ -39,7 +39,7 @@ public class BlockTelemetry extends BlockAdvancedTile implements IShiftDescripti
     @Override
     public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack)
     {
-        int angle = MathHelper.floor_double(placer.rotationYaw * 4.0F / 360.0F + 0.5D) & 3;
+        int angle = MathHelper.floor(placer.rotationYaw * 4.0F / 360.0F + 0.5D) & 3;
         int change = 0;
 
         switch (angle)
@@ -116,18 +116,18 @@ public class BlockTelemetry extends BlockAdvancedTile implements IShiftDescripti
             {
                 ItemStack held = entityPlayer.inventory.getCurrentItem();
                 //Look for Frequency Module
-                if (held != null && held.getItem() == GCItems.basicItem && held.getItemDamage() == 19)
+                if (!held.isEmpty() && held.getItem() == GCItems.basicItem && held.getItemDamage() == 19)
                 {
                     NBTTagCompound fmData = held.getTagCompound();
                     if (fmData != null && fmData.hasKey("linkedUUIDMost") && fmData.hasKey("linkedUUIDLeast"))
                     {
                         UUID uuid = new UUID(fmData.getLong("linkedUUIDMost"), fmData.getLong("linkedUUIDLeast"));
                         ((TileEntityTelemetry) tile).addTrackedEntity(uuid);
-                        entityPlayer.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.telemetry_succeed.message")));
+                        entityPlayer.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.telemetry_succeed.message")));
                     }
                     else
                     {
-                        entityPlayer.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.telemetry_fail.message")));
+                        entityPlayer.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.telemetry_fail.message")));
 
                         if (fmData == null)
                         {
@@ -149,11 +149,11 @@ public class BlockTelemetry extends BlockAdvancedTile implements IShiftDescripti
                     {
                         return false;
                     }
-                    entityPlayer.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.telemetry_fail_wearing_it.message")));
+                    entityPlayer.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.telemetry_fail_wearing_it.message")));
                 }
                 else
                 {
-                    entityPlayer.addChatMessage(new TextComponentString(GCCoreUtil.translate("gui.telemetry_fail_no_frequency_module.message")));
+                    entityPlayer.sendMessage(new TextComponentString(GCCoreUtil.translate("gui.telemetry_fail_no_frequency_module.message")));
                 }
             }
         }

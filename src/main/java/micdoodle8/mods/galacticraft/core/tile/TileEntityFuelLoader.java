@@ -19,42 +19,30 @@ import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.NonNullList;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 
-public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory implements ISidedInventory, IFluidHandler, IFluidHandlerWrapper, ILandingPadAttachable, IMachineSides
+import javax.annotation.Nullable;
+
+public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory implements ISidedInventory, IFluidHandlerWrapper, ILandingPadAttachable, IMachineSides
 {
     private final int tankCapacity = 12000;
     @NetworkedField(targetSide = Side.CLIENT)
     public FluidTank fuelTank = new FluidTank(this.tankCapacity);
-    private ItemStack[] containingItems = new ItemStack[2];
     public IFuelable attachedFuelable;
     private boolean loadedFuelLastTick = false;
 
     public TileEntityFuelLoader()
     {
+        super("container.fuelloader.name");
         this.storage.setMaxExtract(30);
-    }
-
-    @Override
-    public boolean hasCapability(Capability<?> capability, EnumFacing facing)
-    {
-        return capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY;
-    }
-
-    @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing facing)
-    {
-        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY)
-        {
-            return (T) new FluidHandlerWrapper(this, facing);
-        }
-        return null;
+        this.inventory = NonNullList.withSize(2, ItemStack.EMPTY);
     }
 
     public int getScaledFuelLevel(int i)
@@ -69,14 +57,14 @@ public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory imp
     {
         super.update();
 
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             this.loadedFuelLastTick = false;
 
-            final FluidStack liquidContained = FluidUtil.getFluidContained(this.containingItems[1]);
+            final FluidStack liquidContained = FluidUtil.getFluidContained(this.getInventory().get(1));
             if (FluidUtil.isFuel(liquidContained))
             {
-                FluidUtil.loadFromContainer(this.fuelTank, GCFluids.fluidFuel, this.containingItems, 1, liquidContained.amount);
+                FluidUtil.loadFromContainer(this.fuelTank, GCFluids.fluidFuel, this.getInventory(), 1, liquidContained.amount);
             }
 
             if (this.ticks % 100 == 0)
@@ -86,7 +74,7 @@ public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory imp
                 BlockVec3 thisVec = new BlockVec3(this);
                 for (final EnumFacing dir : EnumFacing.VALUES)
                 {
-                    final TileEntity pad = thisVec.getTileEntityOnSide(this.worldObj, dir);
+                    final TileEntity pad = thisVec.getTileEntityOnSide(this.world, dir);
 
                     if (pad instanceof TileEntityMulti)
                     {
@@ -125,7 +113,6 @@ public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory imp
     public void readFromNBT(NBTTagCompound par1NBTTagCompound)
     {
         super.readFromNBT(par1NBTTagCompound);
-        this.containingItems = this.readStandardItemsFromNBT(par1NBTTagCompound);
 
         if (par1NBTTagCompound.hasKey("fuelTank"))
         {
@@ -139,7 +126,6 @@ public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory imp
     public NBTTagCompound writeToNBT(NBTTagCompound nbt)
     {
         super.writeToNBT(nbt);
-        this.writeStandardItemsToNBT(nbt);
 
         if (this.fuelTank.getFluid() != null)
         {
@@ -149,18 +135,6 @@ public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory imp
         this.addMachineSidesToNBT(nbt);  //Needed by IMachineSides
 
         return nbt;
-    }
-
-    @Override
-    protected ItemStack[] getContainingItems()
-    {
-        return this.containingItems;
-    }
-
-    @Override
-    public String getName()
-    {
-        return GCCoreUtil.translate("container.fuelloader.name");
     }
 
     @Override
@@ -186,7 +160,7 @@ public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory imp
     @Override
     public boolean canExtractItem(int slotID, ItemStack itemstack, EnumFacing side)
     {
-        if (slotID == 1 && itemstack != null)
+        if (slotID == 1 && !itemstack.isEmpty())
         {
             return FluidUtil.isEmptyContainer(itemstack);
         }
@@ -274,12 +248,29 @@ public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory imp
     @Override
     public EnumFacing getFront()
     {
-        IBlockState state = this.worldObj.getBlockState(getPos()); 
-        if (state.getBlock() instanceof BlockFuelLoader)
+    	IBlockState state = this.world.getBlockState(getPos()); 
+    	if (state.getBlock() instanceof BlockFuelLoader)
+    	{
+    		return state.getValue(BlockFuelLoader.FACING);
+    	}
+    	return EnumFacing.NORTH;
+    }
+
+    @Override
+    public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing)
+    {
+        return capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY || super.hasCapability(capability, facing);
+    }
+
+    @Nullable
+    @Override
+    public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing facing)
+    {
+        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY)
         {
-            return state.getValue(BlockFuelLoader.FACING);
+            return (T) new FluidHandlerWrapper(this, facing);
         }
-        return EnumFacing.NORTH;
+        return super.getCapability(capability, facing);
     }
 
     @Override
@@ -356,7 +347,7 @@ public class TileEntityFuelLoader extends TileBaseElectricBlockWithInventory imp
     private MachineSidePack[] machineSides;
 
     @Override
-    public MachineSidePack[] getAllMachineSides()
+    public synchronized MachineSidePack[] getAllMachineSides()
     {
         if (this.machineSides == null)
         {

@@ -10,6 +10,7 @@ import micdoodle8.mods.galacticraft.core.GalacticraftCore;
 import micdoodle8.mods.galacticraft.core.blocks.ISortableBlock;
 import micdoodle8.mods.galacticraft.core.util.EnumSortCategoryBlock;
 import micdoodle8.mods.galacticraft.planets.venus.VenusBlocks;
+import micdoodle8.mods.galacticraft.planets.venus.VenusItems;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyEnum;
@@ -28,6 +29,7 @@ import net.minecraft.stats.StatList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.IStringSerializable;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
@@ -38,7 +40,7 @@ import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Random;
 
 public class BlockBasicVenus extends Block implements IDetectableResource, IPlantableBlock, ITerraformableBlock, ISortableBlock
@@ -59,7 +61,8 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
         ORE_QUARTZ(9, "venus_ore_quartz"),
         ORE_SILICON(10, "venus_ore_silicon"),
         ORE_TIN(11, "venus_ore_tin"),
-        LEAD_BLOCK(12, "lead_block");
+        LEAD_BLOCK(12, "lead_block"),
+        ORE_SOLAR_DUST(13, "venus_ore_solar");
 
         private final int meta;
         private final String name;
@@ -75,9 +78,10 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
             return this.meta;
         }
 
+        private final static EnumBlockBasicVenus[] values = values();
         public static EnumBlockBasicVenus byMetadata(int meta)
         {
-            return values()[meta];
+            return values[meta % values.length];
         }
 
         @Override
@@ -116,13 +120,8 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
 
         if (this.canSilkHarvest(worldIn, pos, worldIn.getBlockState(pos), player) && EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, tool) > 0)
         {
-            java.util.List<ItemStack> items = new java.util.ArrayList<ItemStack>();
-            ItemStack itemstack = this.createStackedBlock(state);
-
-            if (itemstack != null)
-            {
-                items.add(itemstack);
-            }
+            ArrayList<ItemStack> items = new ArrayList<ItemStack>();
+            items.add(this.getSilkTouchDrop(state));
 
             net.minecraftforge.event.ForgeEventFactory.fireBlockHarvesting(items, worldIn, pos, worldIn.getBlockState(pos), 0, 1.0f, true, player);
 
@@ -159,7 +158,8 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
         }
         else if (type == EnumBlockBasicVenus.ORE_ALUMINUM || type == EnumBlockBasicVenus.ORE_COPPER ||
                 type == EnumBlockBasicVenus.ORE_GALENA || type == EnumBlockBasicVenus.ORE_QUARTZ ||
-                type == EnumBlockBasicVenus.ORE_SILICON || type == EnumBlockBasicVenus.ORE_TIN)
+                type == EnumBlockBasicVenus.ORE_SILICON || type == EnumBlockBasicVenus.ORE_TIN ||
+                type == EnumBlockBasicVenus.ORE_SOLAR_DUST)
         {
             return 3.0F;
         }
@@ -189,7 +189,8 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
 
         if (type == EnumBlockBasicVenus.ORE_ALUMINUM || type == EnumBlockBasicVenus.ORE_COPPER ||
                 type == EnumBlockBasicVenus.ORE_GALENA || type == EnumBlockBasicVenus.ORE_QUARTZ ||
-                type == EnumBlockBasicVenus.ORE_SILICON || type == EnumBlockBasicVenus.ORE_TIN)
+                type == EnumBlockBasicVenus.ORE_SILICON || type == EnumBlockBasicVenus.ORE_TIN ||
+                type == EnumBlockBasicVenus.ORE_SOLAR_DUST)
         {
             return 5.0F;
         }
@@ -207,6 +208,8 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
             return GCItems.basicItem;
         case ORE_QUARTZ:
             return Items.QUARTZ;
+        case ORE_SOLAR_DUST:
+            return VenusItems.basicItem;
         default:
             return Item.getItemFromBlock(this);
         }
@@ -222,6 +225,8 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
             return 2;
         case ORE_QUARTZ:
             return 0;
+        case ORE_SOLAR_DUST:
+            return 4;
         default:
             return getMetaFromState(state);
         }
@@ -263,7 +268,7 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
             {
             case ORE_QUARTZ:
             case ORE_SILICON:
-                i = MathHelper.getRandomIntegerInRange(rand, 2, 5);
+                i = MathHelper.getInt(rand, 2, 5);
                 break;
             default:
                 i = 0;
@@ -283,11 +288,11 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
 
     @SideOnly(Side.CLIENT)
     @Override
-    public void getSubBlocks(Item par1, CreativeTabs par2CreativeTabs, List<ItemStack> par3List)
+    public void getSubBlocks(CreativeTabs tab, NonNullList<ItemStack> list)
     {
         for (EnumBlockBasicVenus type : EnumBlockBasicVenus.values())
         {
-            par3List.add(new ItemStack(par1, 1, type.getMeta()));
+            list.add(new ItemStack(this, 1, type.getMeta()));
         }
     }
 
@@ -303,6 +308,7 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
         case ORE_QUARTZ:
         case ORE_SILICON:
         case ORE_TIN:
+        case ORE_SOLAR_DUST:
             return true;
         default:
             return false;
@@ -379,6 +385,7 @@ public class BlockBasicVenus extends Block implements IDetectableResource, IPlan
         case ORE_QUARTZ:
         case ORE_SILICON:
         case ORE_TIN:
+        case ORE_SOLAR_DUST:
             return EnumSortCategoryBlock.ORE;
         case DUNGEON_BRICK_1:
         case DUNGEON_BRICK_2:

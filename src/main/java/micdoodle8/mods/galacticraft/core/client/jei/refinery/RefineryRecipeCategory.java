@@ -3,18 +3,18 @@ package micdoodle8.mods.galacticraft.core.client.jei.refinery;
 import mezz.jei.api.IGuiHelper;
 import mezz.jei.api.gui.*;
 import mezz.jei.api.ingredients.IIngredients;
-import mezz.jei.api.recipe.BlankRecipeCategory;
+import mezz.jei.api.recipe.IRecipeCategory;
 import mezz.jei.api.recipe.IRecipeWrapper;
 import micdoodle8.mods.galacticraft.core.Constants;
+import micdoodle8.mods.galacticraft.core.GalacticraftCore;
 import micdoodle8.mods.galacticraft.core.client.jei.RecipeCategories;
 import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
-public class RefineryRecipeCategory extends BlankRecipeCategory
+public class RefineryRecipeCategory implements IRecipeCategory
 {
     private static final ResourceLocation refineryGuiTex = new ResourceLocation(Constants.ASSET_PREFIX, "textures/gui/refinery_recipe.png");
 
@@ -60,40 +60,26 @@ public class RefineryRecipeCategory extends BlankRecipeCategory
     }
 
     @Override
-    public void drawAnimations(@Nonnull Minecraft minecraft)
+    public void drawExtras(@Nonnull Minecraft minecraft)
     {
         this.oilBar.draw(minecraft, 40, 24);
         this.fuelBar.draw(minecraft, 114, 24);
     }
 
     @Override
-    public void setRecipe(@Nonnull IRecipeLayout recipeLayout, @Nonnull IRecipeWrapper recipeWrapper)
+    public void setRecipe(IRecipeLayout recipeLayout, IRecipeWrapper recipeWrapper, IIngredients ingredients)
     {
         IGuiItemStackGroup itemstacks = recipeLayout.getItemStacks();
 
         itemstacks.init(0, true, 39, 2);
         itemstacks.init(1, false, 113, 2);
 
-        if (recipeWrapper instanceof RefineryRecipeWrapper)
-        {
-            RefineryRecipeWrapper circuitFabricatorRecipeWrapper = (RefineryRecipeWrapper) recipeWrapper;
-            List inputs = circuitFabricatorRecipeWrapper.getInputs();
-
-            for (int i = 0; i < inputs.size(); ++i)
-            {
-                Object o = inputs.get(i);
-                if (o != null)
-                {
-                    itemstacks.setFromRecipe(i, o);
-                }
-            }
-            itemstacks.setFromRecipe(1, circuitFabricatorRecipeWrapper.getOutputs());
-        }
+        itemstacks.set(ingredients);
     }
 
     @Override
-    public void setRecipe(IRecipeLayout recipeLayout, IRecipeWrapper recipeWrapper, IIngredients ingredients)
+    public String getModName()
     {
-        this.setRecipe(recipeLayout, recipeWrapper);
+        return GalacticraftCore.NAME;
     }
 }

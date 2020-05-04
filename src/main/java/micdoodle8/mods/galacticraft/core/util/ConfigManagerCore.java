@@ -7,7 +7,6 @@ import micdoodle8.mods.galacticraft.core.GalacticraftCore;
 import micdoodle8.mods.galacticraft.core.energy.EnergyConfigHandler;
 import micdoodle8.mods.galacticraft.core.recipe.RecipeManagerGC;
 import micdoodle8.mods.galacticraft.core.tick.TickHandlerClient;
-import micdoodle8.mods.galacticraft.planets.asteroids.world.gen.BiomeAsteroids;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
@@ -19,7 +18,6 @@ import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.client.config.IConfigElement;
 import net.minecraftforge.fml.common.FMLLog;
-import net.minecraftforge.fml.common.registry.GameData;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Keyboard;
@@ -196,7 +194,7 @@ public class ConfigManagerCore
             finishProp(prop);
 
             prop = getConfig(Constants.CONFIG_CATEGORY_DIMENSIONS, "biomeIDBase", 102);
-            prop.setComment("Biome ID for Moon (Mars will be this + 1, Asteroids + 2 etc). Allowed range 40-250.");
+            prop.setComment("Biome ID base. GC will use biome IDs from this to this + 3, or more with addons. Allowed 40-250. Default 102.");
             prop.setLanguageKey("gc.configgui.biome_id_base").setRequiresMcRestart(true);
             biomeIDbase = prop.getInt();
             if (biomeIDbase < 40 || biomeIDbase > 250)
@@ -452,7 +450,7 @@ public class ConfigManagerCore
 
             try
             {
-                prop = getConfig(Constants.CONFIG_CATEGORY_COMPATIBILITY, "External Sealable IDs", new String[] { GameData.getBlockRegistry().getNameForObject(Blocks.GLASS_PANE) + ":0" });
+                prop = getConfig(Constants.CONFIG_CATEGORY_COMPATIBILITY, "External Sealable IDs", new String[] { Block.REGISTRY.getNameForObject(Blocks.GLASS_PANE) + ":0" });
                 prop.setComment("List non-opaque blocks from other mods (for example, special types of glass) that the Oxygen Sealer should recognize as solid seals. Format is BlockName or BlockName:metadata");
                 prop.setLanguageKey("gc.configgui.sealable_i_ds").setRequiresMcRestart(true);
                 sealableIDs = prop.getStringList();
@@ -464,13 +462,13 @@ public class ConfigManagerCore
             }
 
             prop = getConfig(Constants.CONFIG_CATEGORY_COMPATIBILITY, "External Detectable IDs", new String[] {
-                    ((ResourceLocation) GameData.getBlockRegistry().getNameForObject(Blocks.COAL_ORE)).getResourcePath(),
-                    ((ResourceLocation) GameData.getBlockRegistry().getNameForObject(Blocks.DIAMOND_ORE)).getResourcePath(),
-                    ((ResourceLocation) GameData.getBlockRegistry().getNameForObject(Blocks.GOLD_ORE)).getResourcePath(),
-                    ((ResourceLocation) GameData.getBlockRegistry().getNameForObject(Blocks.IRON_ORE)).getResourcePath(),
-                    ((ResourceLocation) GameData.getBlockRegistry().getNameForObject(Blocks.LAPIS_ORE)).getResourcePath(),
-                    ((ResourceLocation) GameData.getBlockRegistry().getNameForObject(Blocks.REDSTONE_ORE)).getResourcePath(),
-                    ((ResourceLocation) GameData.getBlockRegistry().getNameForObject(Blocks.LIT_REDSTONE_ORE)).getResourcePath() });
+                    Block.REGISTRY.getNameForObject(Blocks.COAL_ORE).getResourcePath(),
+                    Block.REGISTRY.getNameForObject(Blocks.DIAMOND_ORE).getResourcePath(),
+                    Block.REGISTRY.getNameForObject(Blocks.GOLD_ORE).getResourcePath(),
+                    Block.REGISTRY.getNameForObject(Blocks.IRON_ORE).getResourcePath(),
+                    Block.REGISTRY.getNameForObject(Blocks.LAPIS_ORE).getResourcePath(),
+                    Block.REGISTRY.getNameForObject(Blocks.REDSTONE_ORE).getResourcePath(),
+                    Block.REGISTRY.getNameForObject(Blocks.LIT_REDSTONE_ORE).getResourcePath() });
             prop.setComment("List blocks from other mods that the Sensor Glasses should recognize as solid blocks. Format is BlockName or BlockName:metadata.");
             prop.setLanguageKey("gc.configgui.detectable_i_ds").setRequiresMcRestart(true);
             detectableIDs = prop.getStringList();
@@ -834,11 +832,6 @@ public class ConfigManagerCore
             challengeAsteroidPopulation = false;
             challengeSpawnHandling = false;
     	}
-
-    	//This enables Endermen on Asteroids in Asteroids Challenge mode
-    	if (GalacticraftCore.isPlanetsLoaded)
-    		((BiomeAsteroids)BiomeAsteroids.asteroid).resetMonsterListByMode(challengeMobDropsAndSpawning);
-    	//TODO: could also increase mob spawn frequency in Hard Mode on various dimensions e.g. Moon and Mars?
     }
     
     /**
@@ -907,7 +900,7 @@ public class ConfigManagerCore
             Item item = (Item) Item.REGISTRY.getObject(new ResourceLocation(name));
             if (item instanceof ItemBlock)
             {
-                block = ((ItemBlock) item).block;
+                block = ((ItemBlock) item).getBlock();
             }
             if (block == null)
             {
@@ -921,7 +914,7 @@ public class ConfigManagerCore
         try
         {
             Integer.parseInt(name);
-            String bName = (String) GameData.getBlockRegistry().getNameForObject(block).toString();
+            String bName = (String) Block.REGISTRY.getNameForObject(block).toString();
             if (logging)
             {
                 GCLog.info("[config] " + caller + ": the use of numeric IDs is discouraged, please use " + bName + " instead of " + name);

@@ -10,12 +10,13 @@ import micdoodle8.mods.galacticraft.core.proxy.ClientProxyCore;
 import micdoodle8.mods.galacticraft.core.util.EnumColor;
 import micdoodle8.mods.galacticraft.core.util.EnumSortCategoryItem;
 import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.EnumRarity;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemHangingEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -26,6 +27,8 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 public class ItemSchematic extends ItemHangingEntity implements ISchematicItem, ISortableItem
 {
@@ -45,11 +48,14 @@ public class ItemSchematic extends ItemHangingEntity implements ISchematicItem, 
     }
 
     @Override
-    public void getSubItems(Item par1, CreativeTabs par2CreativeTabs, List<ItemStack> par3List)
+    public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> list)
     {
-        for (int i = 0; i < 2; i++)
+        if (tab == GalacticraftCore.galacticraftItemsTab || tab == CreativeTabs.SEARCH)
         {
-            par3List.add(new ItemStack(par1, 1, i));
+            for (int i = 0; i < 2; i++)
+            {
+                list.add(new ItemStack(this, 1, i));
+            }
         }
     }
 
@@ -68,24 +74,21 @@ public class ItemSchematic extends ItemHangingEntity implements ISchematicItem, 
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack par1ItemStack, EntityPlayer par2EntityPlayer, List<String> tooltip, boolean par4)
+    public void addInformation(ItemStack par1ItemStack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn)
     {
-        if (par2EntityPlayer.worldObj.isRemote)
+        switch (par1ItemStack.getItemDamage())
         {
-            switch (par1ItemStack.getItemDamage())
-            {
-            case 0:
-                tooltip.add(GCCoreUtil.translate("schematic.moonbuggy.name"));
-                break;
-            case 1:
-                tooltip.add(GCCoreUtil.translate("schematic.rocket_t2.name"));
+        case 0:
+            tooltip.add(GCCoreUtil.translate("schematic.moonbuggy.name"));
+            break;
+        case 1:
+            tooltip.add(GCCoreUtil.translate("schematic.rocket_t2.name"));
 
-                if (!GalacticraftCore.isPlanetsLoaded)
-                {
-                    tooltip.add(EnumColor.DARK_AQUA + "\"Galacticraft: Planets\" Not Installed!");
-                }
-                break;
+            if (!GalacticraftCore.isPlanetsLoaded)
+            {
+                tooltip.add(EnumColor.DARK_AQUA + "\"Galacticraft: Planets\" Not Installed!");
             }
+            break;
         }
     }
 
@@ -96,8 +99,9 @@ public class ItemSchematic extends ItemHangingEntity implements ISchematicItem, 
     }
 
     @Override
-    public EnumActionResult onItemUse(ItemStack stack, EntityPlayer playerIn, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ)
+    public EnumActionResult onItemUse(EntityPlayer playerIn, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ)
     {
+        ItemStack stack = playerIn.getHeldItem(hand);
         BlockPos blockpos = pos.offset(facing);
 
         if (facing != EnumFacing.DOWN && facing != EnumFacing.UP && playerIn.canPlayerEdit(blockpos, facing, stack))
@@ -108,11 +112,12 @@ public class ItemSchematic extends ItemHangingEntity implements ISchematicItem, 
             {
                 if (!worldIn.isRemote)
                 {
-                    worldIn.spawnEntityInWorld(entityhanging);
+                    entityhanging.playPlaceSound();
+                    worldIn.spawnEntity(entityhanging);
                     entityhanging.sendToClient(worldIn, blockpos);
                 }
 
-                --stack.stackSize;
+                stack.shrink(1);
             }
 
             return EnumActionResult.SUCCESS;

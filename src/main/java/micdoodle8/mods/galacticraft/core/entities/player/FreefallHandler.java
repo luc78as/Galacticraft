@@ -19,6 +19,7 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityFlying;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.MoverType;
 import net.minecraft.entity.item.EntityFallingBlock;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -60,10 +61,10 @@ public class FreefallHandler
             
         //Test whether feet are on a block, also stops the login glitch
         int playerFeetOnY = (int) (player.getEntityBoundingBox().minY - 0.01D);
-        int xx = MathHelper.floor_double(player.posX);
-        int zz = MathHelper.floor_double(player.posZ);
+        int xx = MathHelper.floor(player.posX);
+        int zz = MathHelper.floor(player.posZ);
         BlockPos pos = new BlockPos(xx, playerFeetOnY, zz);
-        IBlockState state = player.worldObj.getBlockState(pos);
+        IBlockState state = player.world.getBlockState(pos);
         Block b = state.getBlock();
         if (b.getMaterial(state) != Material.AIR && !(b instanceof BlockLiquid))
         {
@@ -71,7 +72,7 @@ public class FreefallHandler
             if (b == GCBlocks.platform)
                 blockYmax = playerFeetOnY + 1.0D;
             else
-                blockYmax = playerFeetOnY + b.getBoundingBox(state, player.worldObj, pos).maxY;
+                blockYmax = playerFeetOnY + b.getBoundingBox(state, player.world, pos).maxY;
             if (player.getEntityBoundingBox().minY - blockYmax < 0.01D && player.getEntityBoundingBox().minY - blockYmax > -0.5D)
             {
                 player.onGround = true;
@@ -80,11 +81,11 @@ public class FreefallHandler
                     player.posY -= player.getEntityBoundingBox().minY - blockYmax;
                     player.setEntityBoundingBox(player.getEntityBoundingBox().offset(0, blockYmax - player.getEntityBoundingBox().minY, 0));
                 }
-                else if (b.canCollideCheck(player.worldObj.getBlockState(new BlockPos(xx, playerFeetOnY, zz)), false))
+                else if (b.canCollideCheck(player.world.getBlockState(new BlockPos(xx, playerFeetOnY, zz)), false))
                 {
                     BlockPos offsetPos = new BlockPos(xx, playerFeetOnY, zz);
-                    AxisAlignedBB collisionBox = b.getCollisionBoundingBox(player.worldObj.getBlockState(offsetPos), player.worldObj, offsetPos);
-                    if (collisionBox != null && collisionBox.intersectsWith(player.getEntityBoundingBox()))
+                    AxisAlignedBB collisionBox = b.getCollisionBoundingBox(player.world.getBlockState(offsetPos), player.world, offsetPos);
+                    if (collisionBox != null && collisionBox.intersects(player.getEntityBoundingBox()))
                     {
                         player.posY -= player.getEntityBoundingBox().minY - blockYmax;
                         player.setEntityBoundingBox(player.getEntityBoundingBox().offset(0, blockYmax - player.getEntityBoundingBox().minY, 0));
@@ -99,7 +100,7 @@ public class FreefallHandler
     @SideOnly(Side.CLIENT)
     private boolean testFreefall(EntityPlayerSP p, boolean flag)
     {
-        World world = p.worldObj;
+        World world = p.world;
         WorldProvider worldProvider = world.provider;
         if (!(worldProvider instanceof IZeroGDimension))
         {
@@ -157,7 +158,7 @@ public class FreefallHandler
             {
                 xreach = -0.2D;
             }
-            AxisAlignedBB playerReach = p.getEntityBoundingBox().addCoord(xreach, 0, zreach);
+            AxisAlignedBB playerReach = p.getEntityBoundingBox().expand(xreach, 0, zreach);
 
             boolean checkBlockWithinReach;
             if (worldProvider instanceof WorldProviderSpaceStation)
@@ -176,12 +177,12 @@ public class FreefallHandler
                 //Check if the player's bounding box is in the same block coordinates as any non-vacuum block (including torches etc)
                 //If so, it's assumed the player has something close enough to grab onto, so is not in freefall
                 //Note: breatheable air here means the player is definitely not in freefall
-                int xm = MathHelper.floor_double(playerReach.minX);
-                int xx = MathHelper.floor_double(playerReach.maxX);
-                int ym = MathHelper.floor_double(playerReach.minY);
-                int yy = MathHelper.floor_double(playerReach.maxY);
-                int zm = MathHelper.floor_double(playerReach.minZ);
-                int zz = MathHelper.floor_double(playerReach.maxZ);
+                int xm = MathHelper.floor(playerReach.minX);
+                int xx = MathHelper.floor(playerReach.maxX);
+                int ym = MathHelper.floor(playerReach.minY);
+                int yy = MathHelper.floor(playerReach.maxY);
+                int zm = MathHelper.floor(playerReach.minZ);
+                int zz = MathHelper.floor(playerReach.maxZ);
                 for (int x = xm; x <= xx; x++)
                 {
                     for (int y = ym; y <= yy; y++)
@@ -223,36 +224,36 @@ public class FreefallHandler
 				} else
 					quadrant = (zd<0) ? 3 : 1;
 
-			int ymin = MathHelper.floor_double(p.boundingBox.minY)-1;
-			int ymax = MathHelper.floor_double(p.boundingBox.maxY);
+			int ymin = MathHelper.floor(p.boundingBox.minY)-1;
+			int ymax = MathHelper.floor(p.boundingBox.maxY);
 			int xmin, xmax, zmin, zmax;
 
 			switch (quadrant)
 			{
 			case 0:
-				xmin = MathHelper.floor_double(p.boundingBox.maxX);
+				xmin = MathHelper.floor(p.boundingBox.maxX);
 				xmax = this.ssBoundsMaxX - 1;
-				zmin = MathHelper.floor_double(p.boundingBox.minZ)-1;
-				zmax = MathHelper.floor_double(p.boundingBox.maxZ)+1;
+				zmin = MathHelper.floor(p.boundingBox.minZ)-1;
+				zmax = MathHelper.floor(p.boundingBox.maxZ)+1;
 				break;
 			case 1:
-				xmin = MathHelper.floor_double(p.boundingBox.minX)-1;
-				xmax = MathHelper.floor_double(p.boundingBox.maxX)+1;
-				zmin = MathHelper.floor_double(p.boundingBox.maxZ);
+				xmin = MathHelper.floor(p.boundingBox.minX)-1;
+				xmax = MathHelper.floor(p.boundingBox.maxX)+1;
+				zmin = MathHelper.floor(p.boundingBox.maxZ);
 				zmax = this.ssBoundsMaxZ - 1;
 				break;
 			case 2:
-				zmin = MathHelper.floor_double(p.boundingBox.minZ)-1;
-				zmax = MathHelper.floor_double(p.boundingBox.maxZ)+1;
+				zmin = MathHelper.floor(p.boundingBox.minZ)-1;
+				zmax = MathHelper.floor(p.boundingBox.maxZ)+1;
 				xmin = this.ssBoundsMinX;
-				xmax = MathHelper.floor_double(p.boundingBox.minX);
+				xmax = MathHelper.floor(p.boundingBox.minX);
 				break;
 			case 3:
 			default:
-				xmin = MathHelper.floor_double(p.boundingBox.minX)-1;
-				xmax = MathHelper.floor_double(p.boundingBox.maxX)+1;
+				xmin = MathHelper.floor(p.boundingBox.minX)-1;
+				xmax = MathHelper.floor(p.boundingBox.maxX)+1;
 				zmin = this.ssBoundsMinZ;
-				zmax = MathHelper.floor_double(p.boundingBox.minZ);
+				zmax = MathHelper.floor(p.boundingBox.minZ);
 				break;
 			}
 
@@ -261,7 +262,7 @@ public class FreefallHandler
 			for(int x = xmin; x <= xmax; x++)
 				for (int z = zmin; z <= zmax; z++)
 					for (int y = ymin; y <= ymax; y++)
-						if (Blocks.AIR != this.worldProvider.worldObj.getBlock(x, y, z))
+						if (Blocks.AIR != this.worldProvider.world.getBlock(x, y, z))
 						{
 							freefall = false;
 							break BLOCKCHECK0;
@@ -385,7 +386,7 @@ public class FreefallHandler
         pPrevMotionX = p.motionX;
         pPrevMotionY = p.motionY;
         pPrevMotionZ = p.motionZ;
-        p.moveEntity(p.motionX + posOffsetX, p.motionY + posOffsetY, p.motionZ + posOffsetZ);
+        p.move(MoverType.SELF, p.motionX + posOffsetX, p.motionY + posOffsetY, p.motionZ + posOffsetZ);
     }
 
     /*              double dyaw = p.rotationYaw - p.prevRotationYaw;
@@ -428,7 +429,7 @@ public class FreefallHandler
     @SideOnly(Side.CLIENT)
     public void postVanillaMotion(EntityPlayerSP p)
     {
-        World world = p.worldObj;
+        World world = p.world;
         WorldProvider worldProvider = world.provider;
         if (!(worldProvider instanceof IZeroGDimension))
         {
@@ -569,15 +570,15 @@ public class FreefallHandler
         //Check if the entity's bounding box is in the same block coordinates as any non-vacuum block (including torches etc)
         //If so, it's assumed the entity has something close enough to catch onto, so is not in freefall
         //Note: breatheable air here means the entity is definitely not in freefall
-        int xmx = MathHelper.floor_double(entityBoundingBox.maxX + 0.2D);
-        int ym = MathHelper.floor_double(entityBoundingBox.minY - 0.1D);
-        int yy = MathHelper.floor_double(entityBoundingBox.maxY + 0.1D);
-        int zm = MathHelper.floor_double(entityBoundingBox.minZ - 0.2D);
-        int zz = MathHelper.floor_double(entityBoundingBox.maxZ + 0.2D);
+        int xmx = MathHelper.floor(entityBoundingBox.maxX + 0.2D);
+        int ym = MathHelper.floor(entityBoundingBox.minY - 0.1D);
+        int yy = MathHelper.floor(entityBoundingBox.maxY + 0.1D);
+        int zm = MathHelper.floor(entityBoundingBox.minZ - 0.2D);
+        int zz = MathHelper.floor(entityBoundingBox.maxZ + 0.2D);
         if (ym < 0) ym = 0;
         if (yy > 255) yy = 255; 
 
-        for (int x = MathHelper.floor_double(entityBoundingBox.minX - 0.2D); x <= xmx; x++)
+        for (int x = MathHelper.floor(entityBoundingBox.minX - 0.2D); x <= xmx; x++)
         {
             for (int z = zm; z <= zz; z++)
             {
@@ -608,7 +609,7 @@ public class FreefallHandler
      */
     public static void tickFreefallEntity(Entity e)
     {
-        if (e.worldObj.provider instanceof IZeroGDimension) ((IZeroGDimension)e.worldObj.provider).setInFreefall(e);
+        if (e.world.provider instanceof IZeroGDimension) ((IZeroGDimension)e.world.provider).setInFreefall(e);
         
         //Undo deceleration applied at the end of the previous tick
         boolean warnLog = false;

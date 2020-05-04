@@ -16,6 +16,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IStringSerializable;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
@@ -25,7 +26,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.util.List;
 import java.util.Random;
 
 /**
@@ -67,7 +67,12 @@ public class BlockBasic extends Block implements IDetectableResource, ISortableB
 
         public static EnumBlockBasic byMetadata(int meta)
         {
-            return values()[meta - 3];
+            int val = meta - 3;
+            if (val < 0 || val >= values().length)
+            {
+                return ALUMINUM_DECORATION_BLOCK_0;
+            }
+            return values()[val];
         }
 
         @Override
@@ -190,11 +195,11 @@ public class BlockBasic extends Block implements IDetectableResource, ISortableB
 
     @SideOnly(Side.CLIENT)
     @Override
-    public void getSubBlocks(Item itemIn, CreativeTabs tabs, List<ItemStack> list)
+    public void getSubBlocks(CreativeTabs tab, NonNullList<ItemStack> list)
     {
         for (int var4 = 3; var4 <= 13; ++var4)
         {
-            list.add(new ItemStack(itemIn, 1, var4));
+            list.add(new ItemStack(this, 1, var4));
         }
     }
 
@@ -275,7 +280,7 @@ public class BlockBasic extends Block implements IDetectableResource, ISortableB
         if (meta == 8)
         {
             Random rand = world instanceof World ? ((World)world).rand : new Random();
-            return MathHelper.getRandomIntegerInRange(rand, 2, 5);
+            return MathHelper.getInt(rand, 2, 5);
         }
         return 0;
     }

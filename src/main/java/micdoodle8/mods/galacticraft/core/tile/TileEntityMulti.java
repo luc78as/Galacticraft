@@ -9,7 +9,6 @@ import micdoodle8.mods.galacticraft.core.blocks.BlockMulti;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumHand;
@@ -38,9 +37,9 @@ public class TileEntityMulti extends TileEntity
 //    {
 //        this.mainBlockPosition = mainBlock;
 //
-//        if (!this.worldObj.isRemote)
+//        if (!this.world.isRemote)
 //        {
-//            this.worldObj.notifyBlockUpdate(this.getPos());
+//            this.world.notifyBlockUpdate(this.getPos());
 //        }
 //    }
 
@@ -48,7 +47,7 @@ public class TileEntityMulti extends TileEntity
     {
         if (this.mainBlockPosition != null)
         {
-            TileEntity tileEntity = this.worldObj.getTileEntity(this.mainBlockPosition);
+            TileEntity tileEntity = this.world.getTileEntity(this.mainBlockPosition);
 
             if (tileEntity instanceof IMultiBlock)
             {
@@ -62,7 +61,7 @@ public class TileEntityMulti extends TileEntity
     {
         if (this.mainBlockPosition != null)
         {
-            TileEntity tileEntity = this.worldObj.getTileEntity(this.mainBlockPosition);
+            TileEntity tileEntity = this.world.getTileEntity(this.mainBlockPosition);
 
             if (tileEntity instanceof IMultiBlock)
             {
@@ -73,15 +72,15 @@ public class TileEntityMulti extends TileEntity
         return false;
     }
 
-    public boolean onBlockWrenched(World world, BlockPos pos, EntityPlayer entityPlayer, EnumHand hand, ItemStack heldItem, EnumFacing side, float hitX, float hitY, float hitZ)
+    public boolean onBlockWrenched(World world, BlockPos pos, EntityPlayer entityPlayer, EnumHand hand, EnumFacing side, float hitX, float hitY, float hitZ)
     {
         if (this.mainBlockPosition != null)
         {
-            IBlockState state = this.worldObj.getBlockState(this.mainBlockPosition);
+            IBlockState state = this.world.getBlockState(this.mainBlockPosition);
 
             if (state.getBlock() instanceof BlockAdvanced)
             {
-                return ((BlockAdvanced) state.getBlock()).onBlockActivated(world, this.mainBlockPosition, state, entityPlayer, hand, heldItem, side, hitX, hitY, hitZ);
+                return ((BlockAdvanced) state.getBlock()).onBlockActivated(world, this.mainBlockPosition, state, entityPlayer, hand, side, hitX, hitY, hitZ);
             }
         }
 
@@ -92,7 +91,7 @@ public class TileEntityMulti extends TileEntity
     {
         if (this.mainBlockPosition != null)
         {
-            return this.worldObj.getTileEntity(this.mainBlockPosition);
+            return this.world.getTileEntity(this.mainBlockPosition);
         }
 
         return null;

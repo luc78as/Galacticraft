@@ -20,7 +20,7 @@ public class TileEntityArclampRenderer extends TileEntitySpecialRenderer<TileEnt
     private static IBakedModel lampMetal;
 
     @Override
-    public void renderTileEntityAt(TileEntityArclamp tileEntity, double d, double d1, double d2, float f, int par9)
+    public void render(TileEntityArclamp tileEntity, double d, double d1, double d2, float f, int par9, float alpha)
     {
         this.updateModels();
         int side = tileEntity.getBlockMetadata();
@@ -103,7 +103,7 @@ public class TileEntityArclampRenderer extends TileEntitySpecialRenderer<TileEnt
         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GlStateManager.disableTexture2D();
         final Tessellator tess = Tessellator.getInstance();
-        VertexBuffer worldRenderer = tess.getBuffer();
+        BufferBuilder worldRenderer = tess.getBuffer();
         GlStateManager.color(greyLevel, greyLevel, greyLevel, 1.0F);
         worldRenderer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
         float frameA = -3.4331F;  //These co-ordinates came originally from arclamp_light.obj model

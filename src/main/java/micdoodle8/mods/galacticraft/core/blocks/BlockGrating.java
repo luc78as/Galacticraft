@@ -15,7 +15,6 @@ import micdoodle8.mods.galacticraft.api.block.IPartialSealableBlock;
 import micdoodle8.mods.galacticraft.core.GCBlocks;
 import micdoodle8.mods.galacticraft.core.GalacticraftCore;
 import micdoodle8.mods.galacticraft.core.util.EnumSortCategoryBlock;
-import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
 import micdoodle8.mods.galacticraft.core.util.JavaUtil;
 import micdoodle8.mods.galacticraft.core.util.PropertyObject;
 import net.minecraft.block.Block;
@@ -26,6 +25,7 @@ import net.minecraft.block.SoundType;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -38,6 +38,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -52,6 +53,7 @@ import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.registries.IForgeRegistry;
 
 public class BlockGrating extends Block implements ISortableBlock, IPartialSealableBlock
 {
@@ -123,7 +125,7 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
         number++;
     }
 
-    public static void createForgeFluidVersion(Block b)
+    public static void createForgeFluidVersion(Block b, IForgeRegistry<Block> blockRegistry)
     {
         if (b instanceof BlockFluidBase)
         {
@@ -131,10 +133,11 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
             grating.setLightLevel(b.getLightValue(b.getDefaultState()) / 15F);
             BlockGrating.forgeBlocks.add(grating);
             GCBlocks.registerBlock(grating, null);
+            blockRegistry.register(grating);
         }
     }
 
-    public static void remapForgeVariants()
+    public static void createForgeFluidVersions(IForgeRegistry<Block> blockRegistry)
     {
         Iterator<Block> it = Block.REGISTRY.iterator();
         while(it.hasNext())
@@ -142,15 +145,16 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
             Block test = it.next();
             if (test instanceof BlockFluidBase)
             {
-                createForgeFluidVersion(test);
+                createForgeFluidVersion(test, blockRegistry);
             }
         }
-        if (GCCoreUtil.getEffectiveSide() == Side.CLIENT)
+    }
+
+    public static void remapForgeVariants()
+    {
+        for (Block b : forgeBlocks)
         {
-            for (Block b : forgeBlocks)
-            {
-                BlockGrating.remapVariant(b);
-            }
+            BlockGrating.remapVariant(b);
         }
     }
 
@@ -191,9 +195,9 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
     }
 
     @Override
-    public boolean isBlockSolid(IBlockAccess worldIn, BlockPos pos, EnumFacing side)
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face)
     {
-        return false;
+        return BlockFaceShape.UNDEFINED;
     }
 
     @Override
@@ -217,7 +221,7 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
     }
 
     @Override
-    public boolean canRenderInLayer(BlockRenderLayer layer)
+    public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer)
     {
         return true;
     }
@@ -248,6 +252,7 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
         {
             return Item.getItemFromBlock(Blocks.AIR);
         }
+        Thread.dumpStack();
         return Item.getItemFromBlock(GCBlocks.grating);
     }
 
@@ -292,7 +297,7 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
 
     public IBlockState getLiquidBlock(IBlockState state)
     {
-        if (this.forgeFluid && state.getPropertyNames().contains(BlockFluidBase.LEVEL))
+        if (this.forgeFluid && state.getPropertyKeys().contains(BlockFluidBase.LEVEL))
         {
             int level = state.getValue(BlockFluidBase.LEVEL).intValue();
             return this.forgeBlock.getDefaultState().withProperty(BlockFluidBase.LEVEL, level);
@@ -371,7 +376,7 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
     }
 
     @Override
-    public IBlockState getStateForPlacement(World world, BlockPos pos, EnumFacing facing, float hitX, float hitY, float hitZ, int meta, EntityLivingBase placer, ItemStack stack)
+    public IBlockState getStateForPlacement(World world, BlockPos pos, EnumFacing facing, float hitX, float hitY, float hitZ, int meta, EntityLivingBase placer, EnumHand hand)
     {
         IBlockState oldBlock = world.getBlockState(pos);
         if (oldBlock.getBlock() instanceof BlockGrating)
@@ -539,7 +544,7 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
                     state = state.withProperty(BlockLiquid.LEVEL, Integer.valueOf(i1));
                     worldIn.setBlockState(pos, state, 2);
                     worldIn.scheduleUpdate(pos, this, k);
-                    worldIn.notifyNeighborsOfStateChange(pos, this);
+                    worldIn.notifyNeighborsOfStateChange(pos, this, false);
                 }
             }
         }
@@ -740,7 +745,7 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
     }
     
     @Override
-    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn)
+    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
     {
         if (this.blockMaterial.isLiquid())
         {
@@ -755,7 +760,7 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
         {
             return this.forgeBlock.tickRate(worldIn);
         }
-        return this.blockMaterial == Material.WATER ? 5 : (this.blockMaterial == Material.LAVA ? (worldIn.provider.getHasNoSky() ? 10 : 30) : 0);
+        return this.blockMaterial == Material.WATER ? 5 : (this.blockMaterial == Material.LAVA ? (worldIn.provider.isNether() ? 10 : 30) : 0);
     }
     
     protected int getDepth(IBlockState p_189542_1_)
@@ -821,7 +826,7 @@ public class BlockGrating extends Block implements ISortableBlock, IPartialSeala
                 {
                     world.setBlockState(pos, state.withProperty(BlockFluidBase.LEVEL, quantaPerBlock - expQuanta), 2);
                     world.scheduleUpdate(pos, this, tickRate);
-                    world.notifyNeighborsOfStateChange(pos, this.forgeBlock);
+                    world.notifyNeighborsOfStateChange(pos, this.forgeBlock, false);
                 }
             }
         }

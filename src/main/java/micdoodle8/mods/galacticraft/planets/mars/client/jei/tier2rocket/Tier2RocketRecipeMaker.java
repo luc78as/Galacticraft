@@ -9,9 +9,9 @@ import java.util.List;
 
 public class Tier2RocketRecipeMaker
 {
-    public static List<Tier2RocketRecipeWrapper> getRecipesList()
+    public static List<INasaWorkbenchRecipe> getRecipesList()
     {
-        List<Tier2RocketRecipeWrapper> recipes = new ArrayList<>();
+        List<INasaWorkbenchRecipe> recipes = new ArrayList<>();
 
         int chestCount = -1;
         for (INasaWorkbenchRecipe recipe : GalacticraftRegistry.getRocketT2Recipes())
@@ -20,8 +20,7 @@ public class Tier2RocketRecipeMaker
             if (chests == chestCount)
                 continue;
             chestCount = chests;
-            Tier2RocketRecipeWrapper wrapper = new Tier2RocketRecipeWrapper(recipe);
-            recipes.add(wrapper);
+            recipes.add(recipe);
         }
 
         return recipes;

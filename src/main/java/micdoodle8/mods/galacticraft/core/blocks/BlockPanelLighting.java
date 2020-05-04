@@ -14,7 +14,6 @@ import micdoodle8.mods.galacticraft.core.util.GCCoreUtil;
 import micdoodle8.mods.galacticraft.core.util.PropertyObject;
 import micdoodle8.mods.galacticraft.core.util.RedstoneUtil;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockPistonBase;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
@@ -25,7 +24,6 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
@@ -33,6 +31,7 @@ import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.IStringSerializable;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.EnumSkyBlock;
@@ -100,11 +99,11 @@ public class BlockPanelLighting extends BlockAdvancedTile implements ISortableBl
     
     @Override
     @SideOnly(Side.CLIENT)
-    public void getSubBlocks(Item itemIn, CreativeTabs tab, List<ItemStack> list)
+    public void getSubBlocks(CreativeTabs tab, NonNullList<ItemStack> list)
     {
         for (int i = 0; i < PANELTYPES_LENGTH; i++)
         {
-            list.add(new ItemStack(itemIn, 1, i));
+            list.add(new ItemStack(this, 1, i));
         }
     }
     
@@ -123,7 +122,7 @@ public class BlockPanelLighting extends BlockAdvancedTile implements ISortableBl
     }
     
     @Override
-    public IBlockState onBlockPlaced(World worldIn, BlockPos pos, EnumFacing facing, float hitX, float hitY, float hitZ, int damage, EntityLivingBase placer)
+    public IBlockState getStateForPlacement(World worldIn, BlockPos pos, EnumFacing facing, float hitX, float hitY, float hitZ, int damage, EntityLivingBase placer)
     {
         return this.getStateFromMeta(damage);
     }
@@ -136,7 +135,7 @@ public class BlockPanelLighting extends BlockAdvancedTile implements ISortableBl
         TileEntity tile = worldIn.getTileEntity(pos); 
         if (tile instanceof TileEntityPanelLight && placer instanceof EntityPlayer)
         {
-            ((TileEntityPanelLight) tile).initialise(damage, BlockPistonBase.getFacingFromEntity(pos, placer), (EntityPlayer) placer, worldIn.isRemote, ((BlockPanelLighting)state.getBlock()).superState[damage]);
+            ((TileEntityPanelLight) tile).initialise(damage, EnumFacing.getDirectionFromEntityLiving(pos, placer), (EntityPlayer) placer, worldIn.isRemote, ((BlockPanelLighting)state.getBlock()).superState[damage]);
         }
     }
 
@@ -213,7 +212,7 @@ public class BlockPanelLighting extends BlockAdvancedTile implements ISortableBl
     }
 
     @Override
-    public boolean canRenderInLayer(BlockRenderLayer layer)
+    public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer)
     {
         return true;
     }
@@ -264,7 +263,7 @@ public class BlockPanelLighting extends BlockAdvancedTile implements ISortableBl
     }
     
     @Override
-    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn)
+    public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
     {
         worldIn.checkLightFor(EnumSkyBlock.BLOCK, pos);
     }

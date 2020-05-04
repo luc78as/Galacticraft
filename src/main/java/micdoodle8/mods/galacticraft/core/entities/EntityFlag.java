@@ -9,6 +9,7 @@ import net.minecraft.block.BlockFence;
 import net.minecraft.block.SoundType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.MoverType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -55,9 +56,10 @@ public class EntityFlag extends Entity
     @Override
     public boolean attackEntityFrom(DamageSource par1DamageSource, float par2)
     {
-        boolean flag = par1DamageSource.getEntity() instanceof EntityPlayer && ((EntityPlayer) par1DamageSource.getEntity()).capabilities.isCreativeMode;
+        Entity e = par1DamageSource.getTrueSource();
+        boolean flag = e instanceof EntityPlayer && ((EntityPlayer) e).capabilities.isCreativeMode;
 
-        if (!this.worldObj.isRemote && !this.isDead && !this.indestructable)
+        if (!this.world.isRemote && !this.isDead && !this.indestructable)
         {
             if (this.isEntityInvulnerable(par1DamageSource))
             {
@@ -65,11 +67,11 @@ public class EntityFlag extends Entity
             }
             else
             {
-                this.setBeenAttacked();
+                this.markVelocityChanged();
                 this.setDamage(this.getDamage() + par2 * 10);
-                this.worldObj.playSound(null, this.posX, this.posY, this.posZ, SoundType.METAL.getBreakSound(), SoundCategory.BLOCKS, SoundType.METAL.getVolume(), SoundType.METAL.getPitch() + 1.0F);
+                this.world.playSound(null, this.posX, this.posY, this.posZ, SoundType.METAL.getBreakSound(), SoundCategory.BLOCKS, SoundType.METAL.getVolume(), SoundType.METAL.getPitch() + 1.0F);
 
-                if (par1DamageSource.getEntity() instanceof EntityPlayer && ((EntityPlayer) par1DamageSource.getEntity()).capabilities.isCreativeMode)
+                if (e instanceof EntityPlayer && ((EntityPlayer) e).capabilities.isCreativeMode)
                 {
                     this.setDamage(100.0F);
                 }
@@ -185,14 +187,14 @@ public class EntityFlag extends Entity
     {
         super.onUpdate();
 
-        if ((this.ticksExisted - 1) % 20 == 0 && this.worldObj.isRemote)
+        if ((this.ticksExisted - 1) % 20 == 0 && this.world.isRemote)
         {
-            this.flagData = ClientUtil.updateFlagData(this.getOwner(), Minecraft.getMinecraft().thePlayer.getDistanceToEntity(this) < 50.0D);
+            this.flagData = ClientUtil.updateFlagData(this.getOwner(), Minecraft.getMinecraft().player.getDistance(this) < 50.0D);
         }
 
         Vector3 vec = new Vector3(this.posX, this.posY, this.posZ);
         vec = vec.translate(new Vector3(0, -1, 0));
-        final Block blockAt = vec.getBlock(this.worldObj);
+        final Block blockAt = vec.getBlock(this.world);
 
         if (blockAt != null)
         {
@@ -201,19 +203,19 @@ public class EntityFlag extends Entity
             {
 
             }
-            else if (blockAt.isAir(this.worldObj.getBlockState(pos), this.worldObj, pos))
+            else if (blockAt.isAir(this.world.getBlockState(pos), this.world, pos))
             {
                 this.motionY -= 0.02F;
             }
         }
 
-        this.moveEntity(this.motionX, this.motionY, this.motionZ);
+        this.move(MoverType.SELF, this.motionX, this.motionY, this.motionZ);
     }
 
     @Override
-    public boolean processInitialInteract(EntityPlayer player, ItemStack stack, EnumHand hand)
+    public boolean processInitialInteract(EntityPlayer player, EnumHand hand)
     {
-        if (!this.worldObj.isRemote)
+        if (!this.world.isRemote)
         {
             this.setFacingAngle(this.getFacingAngle() + 3);
         }

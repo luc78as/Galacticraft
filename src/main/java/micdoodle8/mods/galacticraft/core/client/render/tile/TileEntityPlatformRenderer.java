@@ -63,7 +63,7 @@ public class TileEntityPlatformRenderer extends TileEntitySpecialRenderer<TileEn
     private static float lastPartialTicks = -1F;
 
     @Override
-    public void renderTileEntityAt(TileEntityPlatform tileEntity, double d, double d1, double d2, float f, int par9)
+    public void render(TileEntityPlatform tileEntity, double d, double d1, double d2, float f, int par9, float alpha)
     {
         if (f != lastPartialTicks)
         {
@@ -117,7 +117,7 @@ public class TileEntityPlatformRenderer extends TileEntitySpecialRenderer<TileEn
 
                 this.bindTexture(TileEntityPlatformRenderer.lightTexture);
                 final Tessellator tess = Tessellator.getInstance();
-                VertexBuffer worldRenderer = tess.getBuffer();
+                BufferBuilder worldRenderer = tess.getBuffer();
                 float frameA, frameB, frameC, frameD;
 
                 // Draw the moving platform side-lights 

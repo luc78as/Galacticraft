@@ -328,7 +328,7 @@ public class ModelEvolvedSkeletonBoss extends ModelBase
         if (this.swingProgress > -9990.0F)
         {
             var7 = this.swingProgress;
-            this.spine.rotateAngleY = MathHelper.sin(MathHelper.sqrt_float(var7) * Constants.twoPI) * 0.2F;
+            this.spine.rotateAngleY = MathHelper.sin(MathHelper.sqrt(var7) * Constants.twoPI) * 0.2F;
 
             this.rightArm.rotationPointZ = MathHelper.sin(this.spine.rotateAngleY) * 5.0F;
             this.rightArm.rotationPointX = -MathHelper.cos(this.spine.rotateAngleY) * 5.0F;

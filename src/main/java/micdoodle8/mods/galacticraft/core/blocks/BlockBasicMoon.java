@@ -24,6 +24,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.IStringSerializable;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
@@ -69,11 +70,12 @@ public class BlockBasicMoon extends Block implements IDetectableResource, IPlant
             return this.meta;
         }
 
+        private final static EnumBlockBasicMoon[] values = values();
         public static EnumBlockBasicMoon byMetadata(int meta)
         {
             if (meta < 7)
             {
-                return values()[meta];
+                return values[meta];
             }
             
             return MOON_DUNGEON_BRICK;
@@ -155,7 +157,9 @@ public class BlockBasicMoon extends Block implements IDetectableResource, IPlant
     @Override
     public boolean canHarvestBlock(IBlockAccess world, BlockPos pos, EntityPlayer player)
     {
-        EnumBlockBasicMoon type = ((EnumBlockBasicMoon) world.getBlockState(pos).getValue(BASIC_TYPE_MOON));
+        IBlockState bs = world.getBlockState(pos);
+        if (bs.getBlock() != this) return false;
+        EnumBlockBasicMoon type = (EnumBlockBasicMoon) bs.getValue(BASIC_TYPE_MOON);
         if (type == EnumBlockBasicMoon.MOON_DIRT || type == EnumBlockBasicMoon.MOON_TURF)
         {
             return true;
@@ -216,11 +220,11 @@ public class BlockBasicMoon extends Block implements IDetectableResource, IPlant
 
     @SideOnly(Side.CLIENT)
     @Override
-    public void getSubBlocks(Item par1, CreativeTabs par2CreativeTabs, List<ItemStack> par3List)
+    public void getSubBlocks(CreativeTabs tab, NonNullList<ItemStack> list)
     {
         for (EnumBlockBasicMoon type : EnumBlockBasicMoon.values())
         {
-            par3List.add(new ItemStack(par1, 1, type.getMeta()));
+            list.add(new ItemStack(this, 1, type.getMeta()));
         }
     }
 
@@ -379,7 +383,7 @@ public class BlockBasicMoon extends Block implements IDetectableResource, IPlant
         if (meta == 2 || meta == 6)
         {
             Random rand = world instanceof World ? ((World)world).rand : new Random();
-            return MathHelper.getRandomIntegerInRange(rand, 2, 5) + (meta == 6 ? 1 : 0);
+            return MathHelper.getInt(rand, 2, 5) + (meta == 6 ? 1 : 0);
         }
         return 0;
     }
