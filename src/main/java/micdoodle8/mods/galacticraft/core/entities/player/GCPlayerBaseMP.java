@@ -2,8 +2,13 @@ package micdoodle8.mods.galacticraft.core.entities.player;
 
 import api.player.server.ServerPlayerAPI;
 import api.player.server.ServerPlayerBase;
+import micdoodle8.mods.galacticraft.api.world.IGalacticraftWorldProvider;
 import micdoodle8.mods.galacticraft.core.GalacticraftCore;
+import micdoodle8.mods.galacticraft.core.advancement.GCTriggers;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.MoverType;
+import net.minecraft.init.PotionTypes;
+import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 
 public class GCPlayerBaseMP extends ServerPlayerBase
@@ -35,11 +40,12 @@ public class GCPlayerBaseMP extends ServerPlayerBase
 //        }
 //    }
 
+
     @Override
-    public void moveEntity(double par1, double par3, double par5)
+    public void moveEntity(MoverType moverType, double x, double y, double z)
     {
-        super.moveEntity(par1, par3, par5);
-        this.getClientHandler().moveEntity(this.player, par1, par3, par5);
+        super.moveEntity(moverType, x, y, z);
+        this.getClientHandler().move(this.player, moverType, x, y, z);
     }
 
     @Override
